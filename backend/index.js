@@ -15,6 +15,21 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+// Logout route
+app.post('/api/auth/logout', authenticateToken, async (req, res) => {
+    try {
+        if (req.user) {
+            await User.findByIdAndUpdate(req.user.id, { 
+                lastActive: 0,
+                currentSessionId: null 
+            });
+        }
+        res.json({ message: 'Logged out successfully' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 // Root test route
 app.get('/', (req, res) => {
     res.json({ message: 'NETPHIM Backend is LIVE!', status: 'ok' });

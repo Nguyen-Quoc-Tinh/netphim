@@ -52,7 +52,12 @@ export const AuthProvider = ({ children }) => {
         return userData;
     };
 
-    const logout = () => {
+    const logout = async () => {
+        try {
+            await axios.post(`${API_URL}/auth/logout`);
+        } catch (err) {
+            console.error('Logout error:', err);
+        }
         localStorage.removeItem('token');
         delete axios.defaults.headers.common['Authorization'];
         setUser(null);
