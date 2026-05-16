@@ -140,11 +140,11 @@ const Navbar = () => {
                     }}>
                         <Play size={20} fill="black" stroke="black" />
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }} className="logo-text">
                         <span style={{ fontSize: '1.6rem', fontWeight: 800, letterSpacing: '-1px' }}>
                             NET<span style={{ color: 'var(--primary-color)' }}>PHIM</span>
                         </span>
-                        <span style={{ fontSize: '0.6rem', opacity: 0.6, letterSpacing: '1px' }}>Phim cực nét</span>
+                        <span style={{ fontSize: '0.6rem', opacity: 0.6, letterSpacing: '1px' }} className="logo-subtext">Phim cực nét</span>
                     </div>
                 </Link>
 
@@ -336,26 +336,26 @@ const Navbar = () => {
                 {/* Right Actions: Login/User */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                     {user ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }} className="user-actions">
                             {user.isAdmin && (
-                                <Link to="/admin" className="nav-link" style={{ fontSize: '0.85rem', color: 'var(--primary-color)' }}>Admin</Link>
+                                <Link to="/admin" className="nav-link admin-link" style={{ fontSize: '0.8rem', color: 'var(--primary-color)' }}>Admin</Link>
                             )}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.4rem 1rem', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255,255,255,0.05)', padding: '0.3rem 0.6rem', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.1)' }} className="user-pill">
                                 <Link 
                                     to="/profile"
                                     style={{ 
-                                        fontSize: '0.85rem', 
+                                        fontSize: '0.8rem', 
                                         fontWeight: 500, 
                                         color: '#fff',
                                         textDecoration: 'none',
                                         display: 'flex',
                                         alignItems: 'center',
-                                        gap: '0.4rem'
+                                        gap: '0.3rem'
                                     }}
                                 >
-                                    <User size={16} /> {user.username}
+                                    <User size={14} /> <span className="username-text">{user.username}</span>
                                 </Link>
-                                <button onClick={logout} style={{ background: 'transparent', border: 'none', color: '#f87171', fontSize: '0.8rem', cursor: 'pointer', marginLeft: '0.5rem' }}>Thoát</button>
+                                <button onClick={logout} style={{ background: 'transparent', border: 'none', color: '#f87171', fontSize: '0.75rem', cursor: 'pointer', padding: '0.2rem' }}>Thoát</button>
                             </div>
                         </div>
                     ) : (
@@ -519,6 +519,16 @@ const Navbar = () => {
                 @media (max-width: 900px) {
                     .desktop-nav { display: none !important; }
                     .mobile-toggle { display: block !important; }
+                    .logo-text span:first-child { fontSize: 1.3rem !important; }
+                    .logo-subtext { display: none !important; }
+                    .username-text { display: none !important; }
+                    .user-pill { padding: 0.3rem 0.5rem !important; }
+                    .admin-link { display: none !important; }
+                    .container { gap: 0.8rem !important; }
+                }
+                @media (max-width: 400px) {
+                    .logo-text { display: none !important; }
+                    .container { justify-content: space-between !important; }
                 }
             `}</style>
         </nav>
