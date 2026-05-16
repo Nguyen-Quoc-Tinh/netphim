@@ -105,6 +105,16 @@ export const addToHistory = async (movieData) => {
     return res.data;
 };
 
+export const clearHistory = async () => {
+    const res = await api.delete('/user/history');
+    return res.data;
+};
+
+export const deleteHistoryItem = async (slug) => {
+    const res = await api.delete(`/user/history/${slug}`);
+    return res.data;
+};
+
 export const getUserProfile = async () => {
     const res = await api.get('/user/profile');
     return res.data;

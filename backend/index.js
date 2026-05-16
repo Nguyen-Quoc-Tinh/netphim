@@ -504,23 +504,41 @@ app.post('/api/user/favorite', authenticateToken, async (req, res) => {
     }
 });
 
+// Watch History Management
 app.post('/api/user/history', authenticateToken, async (req, res) => {
     const { slug, name, thumb_url, source } = req.body;
     try {
         const user = await User.findById(req.user.id);
-        if (!user) return res.status(404).json({ message: 'User not found' });
-
-        user.watchHistory = user.watchHistory || [];
-        // Remove existing entry if any to move to top
+        // Remove existing if any
         user.watchHistory = user.watchHistory.filter(h => h.slug !== slug);
-        user.watchHistory.unshift({ slug, name, thumb_url, source });
-        // Limit history to 50 items
-        if (user.watchHistory.length > 50) user.watchHistory.pop();
+        // Add to front
+        user.watchHistory.unshift({ slug, name, thumb_url, source, watchedAt: new Date() });
+        // Limit to 50 items
+        if (user.watchHistory.length > 50) user.watchHistory = user.watchHistory.slice(0, 50);
         await user.save();
-        res.json({ message: 'History updated' });
+        res.json({ message: 'Added to history' });
     } catch (err) {
-        console.error('History API error:', err);
-        res.status(500).json({ message: 'Error updating history' });
+        res.status(500).json({ message: err.message });
+    }
+});
+
+app.delete('/api/user/history', authenticateToken, async (req, res) => {
+    try {
+        await User.findByIdAndUpdate(req.user.id, { $set: { watchHistory: [] } });
+        res.json({ message: 'History cleared' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+app.delete('/api/user/history/:slug', authenticateToken, async (req, res) => {
+    try {
+        await User.findByIdAndUpdate(req.user.id, { 
+            $pull: { watchHistory: { slug: req.params.slug } } 
+        });
+        res.json({ message: 'Item removed from history' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
     }
 });
 
