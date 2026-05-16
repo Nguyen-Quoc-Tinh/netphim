@@ -15,6 +15,49 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+// Auth Middlewares
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    
+    if (!token) {
+        console.log('[Auth] No token provided');
+        return res.sendStatus(401);
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
+        if (err) {
+            console.log('[Auth] Token invalid:', err.message);
+            return res.sendStatus(403);
+        }
+
+        try {
+            const user = await User.findById(decoded.id).select('currentSessionId');
+            if (!user || user.currentSessionId !== decoded.sessionId) {
+                console.log('[Auth] Session invalidated (logged in from another device)');
+                return res.status(401).json({ message: 'Tài khoản đã được đăng nhập từ một thiết bị khác.' });
+            }
+        } catch (e) {
+            return res.sendStatus(500);
+        }
+
+        req.user = decoded;
+        next();
+    });
+};
+
+const isAdminMiddleware = (req, res, next) => {
+    if (!req.user) {
+        console.log('[Auth] req.user missing in isAdminMiddleware');
+        return res.sendStatus(401);
+    }
+    if (!req.user.isAdmin) {
+        console.log('[Auth] User is not admin:', req.user.username);
+        return res.status(403).json({ message: 'Admin access required' });
+    }
+    next();
+};
+
 // Logout route
 app.post('/api/auth/logout', authenticateToken, async (req, res) => {
     try {
@@ -56,49 +99,6 @@ mongoose.connect(process.env.MONGODB_URI)
     })
     .catch(err => console.error('MongoDB connection error:', err));
 
-// Auth Middlewares
-const authenticateToken = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-    
-    if (!token) {
-        console.log('[Auth] No token provided');
-        return res.sendStatus(401);
-    }
-
-    jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
-        if (err) {
-            console.log('[Auth] Token invalid:', err.message);
-            return res.sendStatus(403);
-        }
-
-        // Single device check: Verify sessionId from token against DB
-        try {
-            const user = await User.findById(decoded.id).select('currentSessionId');
-            if (!user || user.currentSessionId !== decoded.sessionId) {
-                console.log('[Auth] Session invalidated (logged in from another device)');
-                return res.status(401).json({ message: 'Tài khoản đã được đăng nhập từ một thiết bị khác.' });
-            }
-        } catch (e) {
-            return res.sendStatus(500);
-        }
-
-        req.user = decoded;
-        next();
-    });
-};
-
-const isAdminMiddleware = (req, res, next) => {
-    if (!req.user) {
-        console.log('[Auth] req.user missing in isAdminMiddleware');
-        return res.sendStatus(401);
-    }
-    if (!req.user.isAdmin) {
-        console.log('[Auth] User is not admin:', req.user.username);
-        return res.status(403).json({ message: 'Admin access required' });
-    }
-    next();
-};
 
 const generateRandomPassword = (length = 12) => {
     const lower = 'abcdefghijklmnopqrstuvwxyz';
