@@ -10,7 +10,7 @@ const UserSchema = new mongoose.Schema({
     passwordRequestStatus: { type: String, enum: ['none', 'pending'], default: 'none' },
     isAdmin: { type: Boolean, default: false },
     currentSessionId: { type: String }, // To enforce single device login
-    lastActive: { type: Date, default: Date.now },
+    lastActive: { type: Date, default: 0 },
     favorites: [{
         slug: String,
         name: String,
