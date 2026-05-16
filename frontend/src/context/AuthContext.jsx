@@ -7,7 +7,7 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    const API_URL = '/api';
+    const API_URL = 'https://netphim-backend.onrender.com/api';
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -19,13 +19,13 @@ export const AuthProvider = ({ children }) => {
         }
     }, []);
 
-    // Heartbeat every 2 minutes if logged in
+    // Heartbeat every 1 minute if logged in
     useEffect(() => {
         let interval;
         if (user) {
             interval = setInterval(() => {
                 axios.post(`${API_URL}/auth/heartbeat`).catch(() => {});
-            }, 2 * 60 * 1000);
+            }, 60 * 1000);
         }
         return () => clearInterval(interval);
     }, [user]);
