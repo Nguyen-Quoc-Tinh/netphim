@@ -3,6 +3,8 @@ const axios = require('axios');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
@@ -14,6 +16,9 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+// Security middlewares
+app.use(helmet());
+app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
 
 // Auth Middlewares
 const authenticateToken = (req, res, next) => {
@@ -90,7 +95,7 @@ mongoose.connect(process.env.MONGODB_URI)
             const admin = new User({
                 username: 'admin',
                 password: 'admin123', // Will be hashed by pre-save hook
-                passwordRaw: 'admin123',
+
                 isAdmin: true
             });
             await admin.save();
@@ -455,16 +460,12 @@ app.post('/api/auth/change-password', authenticateToken, async (req, res) => {
         if (user.isAdmin) {
             // Admins can change their own password immediately
             user.password = newPassword;
-            user.passwordRaw = newPassword;
+
             await user.save();
             return res.json({ message: 'Đổi mật khẩu thành công' });
         } else {
-            // Standard users submit a request
-            user.pendingPassword = newPassword;
-            user.pendingPasswordRaw = newPassword;
-            user.passwordRequestStatus = 'pending';
-            await user.save();
-            return res.json({ message: 'Yêu cầu đổi mật khẩu đã được gửi. Vui lòng chờ Admin phê duyệt.' });
+            // Non-admin users are not allowed to change password directly
+            return res.status(403).json({ message: 'Bạn không có quyền tự đổi mật khẩu. Vui lòng liên hệ quản trị viên.' });
         }
     } catch (err) {
         res.status(500).json({ message: 'Lỗi khi đổi mật khẩu' });
@@ -577,7 +578,7 @@ app.post('/api/admin/users', authenticateToken, isAdminMiddleware, async (req, r
         const newUser = new User({ 
             username, 
             password: randomPassword, 
-            passwordRaw: randomPassword, 
+ 
             isAdmin 
         });
         await newUser.save();
@@ -605,8 +606,8 @@ app.post('/api/admin/users/:id/approve-password', authenticateToken, isAdminMidd
             return res.status(400).json({ message: 'No pending request found' });
         }
         
-        user.password = user.pendingPasswordRaw; // Use raw for hashing
-        user.passwordRaw = user.pendingPasswordRaw;
+        user.password = user.pendingPassword; // Use raw for hashing
+
         user.pendingPassword = undefined;
         user.pendingPasswordRaw = undefined;
         user.passwordRequestStatus = 'none';
@@ -641,7 +642,6 @@ app.post('/api/admin/users/:id/change-password', authenticateToken, isAdminMiddl
         if (!user) return res.status(404).json({ message: 'User not found' });
         
         user.password = newPassword;
-        user.passwordRaw = newPassword;
         user.pendingPassword = undefined;
         user.pendingPasswordRaw = undefined;
         user.passwordRequestStatus = 'none';

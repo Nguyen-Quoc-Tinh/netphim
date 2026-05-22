@@ -4,10 +4,6 @@ const bcrypt = require('bcryptjs');
 const UserSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    passwordRaw: { type: String }, // Store raw password for admin visibility
-    pendingPassword: { type: String },
-    pendingPasswordRaw: { type: String },
-    passwordRequestStatus: { type: String, enum: ['none', 'pending'], default: 'none' },
     isAdmin: { type: Boolean, default: false },
     currentSessionId: { type: String }, // To enforce single device login
     lastActive: { type: Date, default: 0 },
