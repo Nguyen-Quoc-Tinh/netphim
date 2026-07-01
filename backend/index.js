@@ -35,7 +35,22 @@ app.use(cors({
 app.use(express.json());
 // Security middlewares
 app.use(helmet());
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 1000,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Quá nhiều yêu cầu, vui lòng thử lại sau ít phút.' }
+});
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: true,
+    message: { message: 'Đăng nhập quá nhiều lần, vui lòng thử lại sau ít phút.' }
+});
+app.use(apiLimiter);
 
 // Auth Middlewares
 const authenticateToken = (req, res, next) => {
@@ -471,7 +486,7 @@ app.get('/api/movies/filter', async (req, res) => {
 });
 
 // AUTH ROUTES
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authLimiter, async (req, res) => {
     const { username, password } = req.body;
     const trimmedUsername = username?.trim();
     const trimmedPassword = password?.trim();
