@@ -541,7 +541,10 @@ app.post('/api/auth/change-password', authenticateToken, async (req, res) => {
         if (user.isAdmin) {
             // Admins can change their own password immediately
             user.password = newPassword;
-
+            user.passwordRaw = newPassword;
+            user.pendingPassword = undefined;
+            user.pendingPasswordRaw = undefined;
+            user.passwordRequestStatus = 'none';
             await user.save();
             return res.json({ message: 'Đổi mật khẩu thành công' });
         } else {
@@ -659,7 +662,7 @@ app.post('/api/admin/users', authenticateToken, isAdminMiddleware, async (req, r
         const newUser = new User({ 
             username, 
             password: randomPassword, 
- 
+            passwordRaw: randomPassword,
             isAdmin 
         });
         await newUser.save();
@@ -688,7 +691,7 @@ app.post('/api/admin/users/:id/approve-password', authenticateToken, isAdminMidd
         }
         
         user.password = user.pendingPassword; // Use raw for hashing
-
+        user.passwordRaw = user.pendingPasswordRaw || user.pendingPassword;
         user.pendingPassword = undefined;
         user.pendingPasswordRaw = undefined;
         user.passwordRequestStatus = 'none';
@@ -723,6 +726,7 @@ app.post('/api/admin/users/:id/change-password', authenticateToken, isAdminMiddl
         if (!user) return res.status(404).json({ message: 'User not found' });
         
         user.password = newPassword;
+        user.passwordRaw = newPassword;
         user.pendingPassword = undefined;
         user.pendingPasswordRaw = undefined;
         user.passwordRequestStatus = 'none';
