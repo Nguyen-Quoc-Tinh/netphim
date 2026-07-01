@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { getHome, getLocalMovies, getMovieDetails, api } from '../utils/api';
+import { getHome, getLocalMovies, api } from '../utils/api';
 import MovieCard from '../components/MovieCard';
-import FilterSection from '../components/FilterSection';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Info, Heart, Volume2, ChevronUp, ChevronLeft, Filter } from 'lucide-react';
+import { Play, Info, Heart, ChevronUp, ChevronLeft } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { HeroSkeleton, MovieCardSkeleton } from '../components/Skeleton';
 
@@ -15,10 +14,9 @@ const Home = () => {
     const [theaterMovies, setTheaterMovies] = useState([]);
     const [animeMovies, setAnimeMovies] = useState([]);
     const [animeIndex, setAnimeIndex] = useState(0);
-    const [showFilters, setShowFilters] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [loading, setLoading] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
+    const [, setLoadingMore] = useState(false);
     const [heroIndex, setHeroIndex] = useState(0);
     const navigate = useNavigate();
     const topTenRef = React.useRef(null);
@@ -278,7 +276,7 @@ const Home = () => {
                     { label: 'Trung Quốc', movies: countryMovies.china, slug: 'trung-quoc' },
                     { label: 'US-UK', movies: countryMovies.usuk, slug: 'au-my' }
                 ].map((row, idx) => (
-                    <div key={idx} className="flex flex-col md:grid md:grid-cols-[250px_1fr] gap-4 md:gap-8 mb-16 items-start">
+                    <div key={idx} className="flex flex-col md:grid md:grid-cols-[250px_1fr] gap-4 md:gap-8 mb-16 items-start" style={{ minWidth: 0 }}>
                         {/* Title Section (Left) */}
                         <div style={{ paddingTop: '1rem' }}>
                             <h3 style={{ fontSize: '1.8rem', fontWeight: 800, lineHeight: 1.2, marginBottom: '1rem' }}>
@@ -290,9 +288,9 @@ const Home = () => {
                         </div>
 
                         {/* Movies List (Right - Horizontal Scroll) */}
-                        <div style={{ display: 'flex', gap: '1.2rem', overflowX: 'auto', paddingBottom: '1rem', scrollbarWidth: 'none' }}>
+                        <div style={{ display: 'flex', gap: '1.2rem', overflowX: 'auto', paddingBottom: '1rem', scrollbarWidth: 'none', width: '100%', maxWidth: '100%', minWidth: 0, overscrollBehaviorX: 'contain' }}>
                             {row.movies.map(m => (
-                                <div key={m._id} style={{ minWidth: '220px', cursor: 'pointer' }} onClick={() => navigate(`/movie/${m.slug}?source=kkphim`)}>
+                                <div key={m._id} style={{ minWidth: 'min(220px, 68vw)', maxWidth: '220px', cursor: 'pointer' }} onClick={() => navigate(`/movie/${m.slug}?source=kkphim`)}>
                                     <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', aspectRatio: '16/10', marginBottom: '0.8rem' }}>
                                         <img 
                                             src={m.thumb_url?.startsWith('http') ? m.thumb_url : `https://phimimg.com/${m.thumb_url}`} 
@@ -339,7 +337,10 @@ const Home = () => {
                             gap: '1rem', 
                             overflowX: 'hidden', 
                             scrollBehavior: 'smooth',
-                            paddingBottom: '1rem'
+                            paddingBottom: '1rem',
+                            width: '100%',
+                            maxWidth: '100%',
+                            minWidth: 0
                         }}
                     >
                         {topSeries.map((m, index) => (
@@ -404,7 +405,7 @@ const Home = () => {
                         </div>
                     </div>
                     
-                    <div style={{ display: 'flex', gap: '1.5rem', overflowX: 'auto', paddingBottom: '1.5rem', scrollbarWidth: 'none' }}>
+                    <div style={{ display: 'flex', gap: '1.5rem', overflowX: 'auto', paddingBottom: '1.5rem', scrollbarWidth: 'none', width: '100%', maxWidth: '100%', minWidth: 0, overscrollBehaviorX: 'contain' }}>
                         {theaterMovies.map(m => (
                             <div key={m._id} style={{ minWidth: 'min(400px, 85%)', cursor: 'pointer' }} onClick={() => navigate(`/movie/${m.slug}?source=kkphim`)}>
                                 <div style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', aspectRatio: '16/9', marginBottom: '1.2rem' }}>
@@ -565,6 +566,9 @@ const Home = () => {
                             display: 'flex',
                             gap: '1rem',
                             overflowX: 'auto',
+                            maxWidth: '100%',
+                            minWidth: 0,
+                            overscrollBehaviorX: 'contain',
                             scrollbarWidth: 'none',
                             padding: '10px'
                         }}>

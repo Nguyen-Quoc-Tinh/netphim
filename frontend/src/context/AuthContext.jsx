@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
 const AuthContext = createContext();
@@ -7,7 +7,7 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    const API_URL = 'https://netphim-backend.onrender.com/api';
+    const API_URL = import.meta.env.VITE_API_BASE_URL || 'https://netphim-backend.onrender.com/api';
 
     useEffect(() => {
         const token = localStorage.getItem('token');

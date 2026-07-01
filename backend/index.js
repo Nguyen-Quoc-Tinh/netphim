@@ -150,16 +150,40 @@ const Movie = mongoose.model('Movie', movieSchema, 'movies'); // Assuming collec
 
 const OPHIM_API = 'https://phimapi.com';
 const KKPHIM_API = 'https://phimapi.com';
+const PUBLIC_API_CACHE_TTL = parseInt(process.env.PUBLIC_API_CACHE_TTL_MS, 10) || 10 * 60 * 1000;
+const SHORT_API_CACHE_TTL = parseInt(process.env.SHORT_API_CACHE_TTL_MS, 10) || 2 * 60 * 1000;
+const apiCache = new Map();
+const movieListFields = 'name origin_name slug thumb_url poster_url year quality episode_current status type source modified time';
+
+const cloneData = (data) => JSON.parse(JSON.stringify(data));
+
+const setPublicCacheHeaders = (res, ttl = PUBLIC_API_CACHE_TTL) => {
+    const seconds = Math.max(30, Math.floor(ttl / 1000));
+    res.set('Cache-Control', `public, max-age=${seconds}, s-maxage=${seconds}, stale-while-revalidate=${seconds * 2}`);
+};
 
 // Helper to handle API requests
-const fetchData = async (url) => {
+const fetchData = async (url, ttl = PUBLIC_API_CACHE_TTL) => {
+    const cached = apiCache.get(url);
+    if (cached && cached.expiresAt > Date.now()) {
+        return cloneData(cached.data);
+    }
+
     try {
         const response = await axios.get(url, {
             headers: { 'accept': 'application/json' }
         });
-        return response.data || {};
+        const data = response.data || {};
+        apiCache.set(url, {
+            data: cloneData(data),
+            expiresAt: Date.now() + ttl
+        });
+        return data;
     } catch (error) {
         console.error(`Error fetching ${url}:`, error.message);
+        if (cached?.data) {
+            return cloneData(cached.data);
+        }
         return {};
     }
 };
@@ -176,6 +200,7 @@ app.get('/api/home', async (req, res) => {
         combinedKK.items = [...kkphimHomeP1.items, ...kkphimHomeP2.items];
     }
 
+    setPublicCacheHeaders(res, SHORT_API_CACHE_TTL);
     res.json({
         ophim: ophimHome,
         kkphim: combinedKK
@@ -217,7 +242,13 @@ app.get('/api/local-movies', async (req, res) => {
         const skip = (page - 1) * limit;
 
         const total = await Movie.countDocuments();
-        const movies = await Movie.find().skip(skip).limit(limit).sort({ _id: -1 });
+        const movies = await Movie.find()
+            .select(movieListFields)
+            .sort({ _id: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean();
+        setPublicCacheHeaders(res, SHORT_API_CACHE_TTL);
         res.json({ movies, total });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -251,12 +282,14 @@ app.get('/api/movie/:slug', async (req, res) => {
 app.get('/api/categories', async (req, res) => {
     // Categories list is at the root level in phimapi.com
     const data = await fetchData(`https://phimapi.com/the-loai`);
+    setPublicCacheHeaders(res);
     res.json(data);
 });
 
 app.get('/api/countries', async (req, res) => {
     // Countries list is at the root level in phimapi.com
     const data = await fetchData(`https://phimapi.com/quoc-gia`);
+    setPublicCacheHeaders(res);
     res.json(data);
 });
 
@@ -267,6 +300,7 @@ app.get('/api/kkphim/list/:type', async (req, res) => {
     const { type } = req.params;
     const { page = 1 } = req.query;
     const data = await fetchData(`${KKPHIM_API}/v1/api/danh-sach/${type}?page=${page}`);
+    setPublicCacheHeaders(res, SHORT_API_CACHE_TTL);
     res.json(data);
 });
 
@@ -312,6 +346,7 @@ app.get('/api/the-loai/:slug', async (req, res) => {
             p.currentPage = page;
             p.totalPages = Math.ceil(p.totalItems / limit);
         }
+        setPublicCacheHeaders(res, SHORT_API_CACHE_TTL);
         res.json({ data });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -356,6 +391,7 @@ app.get('/api/quoc-gia/:slug', async (req, res) => {
             p.currentPage = page;
             p.totalPages = Math.ceil(p.totalItems / limit);
         }
+        setPublicCacheHeaders(res, SHORT_API_CACHE_TTL);
         res.json({ data });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -370,6 +406,7 @@ app.get('/api/danh-sach/:slug', async (req, res) => {
         // Special case: Phim Chiếu Rạp should fetch from external API for fresh data
         if (slug === 'phim-chieu-rap') {
             const externalData = await fetchData(`${KKPHIM_API}/v1/api/danh-sach/phim-chieu-rap?page=${page}`);
+            setPublicCacheHeaders(res, SHORT_API_CACHE_TTL);
             return res.json(externalData);
         }
 
@@ -382,13 +419,19 @@ app.get('/api/danh-sach/:slug', async (req, res) => {
         if (slug === 'phim-moi') query = {}; // All new
 
         const total = await Movie.countDocuments(query);
-        const movies = await Movie.find(query).sort({ _id: -1 }).skip(skip).limit(limit);
+        const movies = await Movie.find(query)
+            .select(movieListFields)
+            .sort({ _id: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean();
 
         let title = `Danh sách: ${slug}`;
         if (slug === 'phim-bo') title = 'Phim Bộ';
         if (slug === 'phim-le') title = 'Phim Lẻ';
         if (slug === 'phim-moi') title = 'Phim Mới Cập Nhật';
 
+        setPublicCacheHeaders(res, SHORT_API_CACHE_TTL);
         res.json({ data: { items: movies, params: { pagination: { totalItems: total, totalItemsPerPage: limit, currentPage: page } }, titlePage: title } });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -413,8 +456,14 @@ app.get('/api/movies/filter', async (req, res) => {
 
         const skip = (parseInt(page) - 1) * parseInt(limit);
         const total = await Movie.countDocuments(query);
-        const movies = await Movie.find(query).sort(sortOption).skip(skip).limit(parseInt(limit));
+        const movies = await Movie.find(query)
+            .select(movieListFields)
+            .sort(sortOption)
+            .skip(skip)
+            .limit(parseInt(limit))
+            .lean();
 
+        setPublicCacheHeaders(res, SHORT_API_CACHE_TTL);
         res.json({ movies, total, page: parseInt(page), totalPages: Math.ceil(total / limit) });
     } catch (error) {
         res.status(500).json({ message: error.message });

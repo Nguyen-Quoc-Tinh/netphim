@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, Play, Menu, X, ChevronDown, User } from 'lucide-react';
 import { getCategories, getCountries, searchMovies } from '../utils/api';
@@ -519,7 +519,7 @@ const Navbar = () => {
                 @media (max-width: 900px) {
                     .desktop-nav { display: none !important; }
                     .mobile-toggle { display: block !important; }
-                    .logo-text span:first-child { fontSize: 1.3rem !important; }
+                    .logo-text span:first-child { font-size: 1.3rem !important; }
                     .logo-subtext { display: none !important; }
                     .username-text { display: none !important; }
                     .user-pill { padding: 0.3rem 0.5rem !important; }
@@ -527,7 +527,8 @@ const Navbar = () => {
                     .container { gap: 0.8rem !important; }
                 }
                 @media (max-width: 400px) {
-                    .logo-text { display: none !important; }
+                    .logo-text span:first-child { font-size: 1rem !important; }
+                    .logo-subtext { display: none !important; }
                     .container { justify-content: space-between !important; }
                 }
             `}</style>
