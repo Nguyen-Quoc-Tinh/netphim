@@ -189,7 +189,45 @@ const normalizeMovieItems = (items = [], source = 'ophim', currentSlug = '') => 
         .map(item => ({ ...item, source }));
 };
 
+const escapeRegExp = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const stripSeriesMarkers = (title = '') => title
+    .replace(/\([^)]*(phần|phan|season|part|cour|mùa|mua|s\d+)[^)]*\)/gi, ' ')
+    .replace(/\[[^\]]*(phần|phan|season|part|cour|mùa|mua|s\d+)[^\]]*\]/gi, ' ')
+    .replace(/\b(phần|phan|season|part|cour|mùa|mua)\s*\d+\b/gi, ' ')
+    .replace(/\bs\d+\b/gi, ' ')
+    .replace(/\b\d+(st|nd|rd|th)\s+season\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const getSeriesKeywords = (movie = {}) => {
+    const titles = [movie.name, movie.origin_name]
+        .map(stripSeriesMarkers)
+        .map(title => title.replace(/\s*[:\-–—]\s*$/g, '').trim())
+        .filter(title => title.length >= 4);
+    const keywords = [];
+    for (const title of titles) {
+        keywords.push(title);
+        const prefix = title.split(/\s*[:\-–—]\s*/)[0]?.trim();
+        if (prefix && prefix.length >= 4 && prefix.length < title.length) {
+            keywords.push(prefix);
+        }
+    }
+    return [...new Set(keywords)].slice(0, 3);
+};
+
 const getMovieItem = (payload) => payload?.movie || payload?.data?.item || payload;
+
+const getFranchiseMatchesFromExternal = async (movie, slug, source) => {
+    const keywords = getSeriesKeywords(movie);
+    const items = [];
+    for (const keyword of keywords) {
+        const data = await fetchData(`${OPHIM_API}/v1/api/tim-kiem?keyword=${encodeURIComponent(keyword)}&page=1`, SHORT_API_CACHE_TTL);
+        const nextItems = data?.data?.items || data?.items || [];
+        items.push(...nextItems);
+    }
+    return normalizeMovieItems(items, source, slug);
+};
 
 const getRelatedFromExternal = async (movie, slug, source) => {
     const base = source === 'kkphim' ? KKPHIM_API : OPHIM_API;
@@ -203,7 +241,7 @@ const getRelatedFromExternal = async (movie, slug, source) => {
         `${base}/danh-sach/phim-moi-cap-nhat?page=1`
     ].filter(Boolean);
 
-    const items = [];
+    const items = await getFranchiseMatchesFromExternal(movie, slug, source);
     for (const url of urls) {
         const data = await fetchData(url, SHORT_API_CACHE_TTL);
         const nextItems = data?.data?.items || data?.items || [];
@@ -318,6 +356,11 @@ app.get('/api/movie/:slug/related', async (req, res) => {
             const movie = await Movie.findOne({ slug }).lean();
             if (!movie) return res.json({ items: [] });
 
+            const seriesKeywords = getSeriesKeywords(movie);
+            const seriesFilters = seriesKeywords.flatMap(keyword => {
+                const regex = new RegExp(escapeRegExp(keyword), 'i');
+                return [{ name: regex }, { origin_name: regex }];
+            });
             const categoryNames = (movie.category || []).map(item => item?.name).filter(Boolean);
             const categorySlugs = (movie.category || []).map(item => item?.slug).filter(Boolean);
             const countryNames = (movie.country || []).map(item => item?.name).filter(Boolean);
@@ -330,12 +373,26 @@ app.get('/api/movie/:slug/related', async (req, res) => {
                 countrySlugs.length ? { 'country.slug': { $in: countrySlugs } } : null
             ].filter(Boolean);
 
-            const query = filters.length ? { slug: { $ne: slug }, $or: filters } : { slug: { $ne: slug } };
-            related = await Movie.find(query)
-                .select(movieListFields)
-                .sort({ _id: -1 })
-                .limit(18)
-                .lean();
+            if (seriesFilters.length) {
+                related = await Movie.find({ slug: { $ne: slug }, $or: seriesFilters })
+                    .select(movieListFields)
+                    .sort({ _id: -1 })
+                    .limit(18)
+                    .lean();
+            }
+
+            if (related.length < 18) {
+                const existingSlugs = new Set([slug, ...related.map(item => item.slug)]);
+                const query = filters.length
+                    ? { slug: { $nin: Array.from(existingSlugs) }, $or: filters }
+                    : { slug: { $nin: Array.from(existingSlugs) } };
+                const similarMovies = await Movie.find(query)
+                    .select(movieListFields)
+                    .sort({ _id: -1 })
+                    .limit(18 - related.length)
+                    .lean();
+                related = [...related, ...similarMovies];
+            }
 
             if (related.length < 12) {
                 const existingSlugs = new Set([slug, ...related.map(item => item.slug)]);

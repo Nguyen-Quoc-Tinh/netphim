@@ -282,7 +282,7 @@ const MovieDetails = () => {
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.5rem' }}>
                             <div>
                                 <h2 style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>Phim liên quan</h2>
-                                <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Gợi ý theo thể loại, quốc gia và kiểu phim tương tự.</p>
+                                <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Ưu tiên các phần khác cùng bộ, sau đó là phim cùng thể loại và quốc gia.</p>
                             </div>
                         </div>
 
