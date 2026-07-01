@@ -177,6 +177,43 @@ const setPublicCacheHeaders = (res, ttl = PUBLIC_API_CACHE_TTL) => {
     res.set('Cache-Control', `public, max-age=${seconds}, s-maxage=${seconds}, stale-while-revalidate=${seconds * 2}`);
 };
 
+const normalizeMovieItems = (items = [], source = 'ophim', currentSlug = '') => {
+    const seen = new Set();
+    return items
+        .filter(item => item?.slug && item.slug !== currentSlug)
+        .filter(item => {
+            if (seen.has(item.slug)) return false;
+            seen.add(item.slug);
+            return true;
+        })
+        .map(item => ({ ...item, source }));
+};
+
+const getMovieItem = (payload) => payload?.movie || payload?.data?.item || payload;
+
+const getRelatedFromExternal = async (movie, slug, source) => {
+    const base = source === 'kkphim' ? KKPHIM_API : OPHIM_API;
+    const categorySlug = movie?.category?.[0]?.slug;
+    const countrySlug = movie?.country?.[0]?.slug;
+    const listType = movie?.type === 'series' ? 'phim-bo' : movie?.type === 'single' ? 'phim-le' : 'phim-moi-cap-nhat';
+    const urls = [
+        categorySlug ? `${base}/v1/api/the-loai/${categorySlug}?page=1` : null,
+        countrySlug ? `${base}/v1/api/quoc-gia/${countrySlug}?page=1` : null,
+        `${base}/v1/api/danh-sach/${listType}?page=1`,
+        `${base}/danh-sach/phim-moi-cap-nhat?page=1`
+    ].filter(Boolean);
+
+    const items = [];
+    for (const url of urls) {
+        const data = await fetchData(url, SHORT_API_CACHE_TTL);
+        const nextItems = data?.data?.items || data?.items || [];
+        items.push(...nextItems);
+        if (items.length >= 18) break;
+    }
+
+    return normalizeMovieItems(items, source, slug).slice(0, 18);
+};
+
 // Helper to handle API requests
 const fetchData = async (url, ttl = PUBLIC_API_CACHE_TTL) => {
     const cached = apiCache.get(url);
@@ -267,6 +304,63 @@ app.get('/api/local-movies', async (req, res) => {
         res.json({ movies, total });
     } catch (error) {
         res.status(500).json({ message: error.message });
+    }
+});
+
+app.get('/api/movie/:slug/related', async (req, res) => {
+    const { slug } = req.params;
+    const { source = 'ophim' } = req.query;
+
+    try {
+        let related = [];
+
+        if (source === 'local') {
+            const movie = await Movie.findOne({ slug }).lean();
+            if (!movie) return res.json({ items: [] });
+
+            const categoryNames = (movie.category || []).map(item => item?.name).filter(Boolean);
+            const categorySlugs = (movie.category || []).map(item => item?.slug).filter(Boolean);
+            const countryNames = (movie.country || []).map(item => item?.name).filter(Boolean);
+            const countrySlugs = (movie.country || []).map(item => item?.slug).filter(Boolean);
+            const filters = [
+                movie.type ? { type: movie.type } : null,
+                categoryNames.length ? { 'category.name': { $in: categoryNames } } : null,
+                categorySlugs.length ? { 'category.slug': { $in: categorySlugs } } : null,
+                countryNames.length ? { 'country.name': { $in: countryNames } } : null,
+                countrySlugs.length ? { 'country.slug': { $in: countrySlugs } } : null
+            ].filter(Boolean);
+
+            const query = filters.length ? { slug: { $ne: slug }, $or: filters } : { slug: { $ne: slug } };
+            related = await Movie.find(query)
+                .select(movieListFields)
+                .sort({ _id: -1 })
+                .limit(18)
+                .lean();
+
+            if (related.length < 12) {
+                const existingSlugs = new Set([slug, ...related.map(item => item.slug)]);
+                const fallback = await Movie.find({ slug: { $nin: Array.from(existingSlugs) } })
+                    .select(movieListFields)
+                    .sort({ _id: -1 })
+                    .limit(18 - related.length)
+                    .lean();
+                related = [...related, ...fallback];
+            }
+
+            setPublicCacheHeaders(res, SHORT_API_CACHE_TTL);
+            return res.json({ items: normalizeMovieItems(related, 'local', slug) });
+        }
+
+        const base = source === 'kkphim' ? KKPHIM_API : OPHIM_API;
+        const detail = await fetchData(`${base}/phim/${slug}`, SHORT_API_CACHE_TTL);
+        const movie = getMovieItem(detail);
+        related = await getRelatedFromExternal(movie, slug, source);
+
+        setPublicCacheHeaders(res, SHORT_API_CACHE_TTL);
+        res.json({ items: related });
+    } catch (error) {
+        console.error('[Related Movies] error:', error.message);
+        res.status(500).json({ message: 'Error fetching related movies' });
     }
 });
 

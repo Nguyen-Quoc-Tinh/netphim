@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { getMovieDetails, toggleFavorite, addToHistory, getUserProfile } from '../utils/api';
+import { getMovieDetails, getRelatedMovies, toggleFavorite, addToHistory, getUserProfile } from '../utils/api';
+import MovieCard from '../components/MovieCard';
 import { 
     Play, Calendar, Clock, Globe, Tag, Star, Share2, List, 
     ChevronLeft, Heart, Plus, SkipForward, AlertCircle, MessageSquare, 
@@ -19,10 +20,13 @@ const MovieDetails = () => {
     const [currentEpisode, setCurrentEpisode] = useState(null);
     const [isFavorite, setIsFavorite] = useState(false);
     const [cinemaMode, setCinemaMode] = useState(false);
+    const [relatedMovies, setRelatedMovies] = useState([]);
+    const [relatedLoading, setRelatedLoading] = useState(false);
 
     useEffect(() => {
         const fetchDetails = async () => {
             setLoading(true);
+            setRelatedMovies([]);
             try {
                 const res = await getMovieDetails(slug, source);
                 const movieData = res.movie || res.data?.item || res;
@@ -69,6 +73,22 @@ const MovieDetails = () => {
             }
         };
         fetchDetails();
+    }, [slug, source]);
+
+    useEffect(() => {
+        const fetchRelated = async () => {
+            setRelatedLoading(true);
+            try {
+                const res = await getRelatedMovies(slug, source);
+                setRelatedMovies(res.items || []);
+            } catch (err) {
+                console.error('Related movies error', err);
+                setRelatedMovies([]);
+            } finally {
+                setRelatedLoading(false);
+            }
+        };
+        fetchRelated();
     }, [slug, source]);
 
     const handleFavorite = async () => {
@@ -256,6 +276,41 @@ const MovieDetails = () => {
                         </div>
                     </aside>
                 </div>
+
+                {(relatedLoading || relatedMovies.length > 0) && (
+                    <section style={{ marginTop: '4rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.5rem' }}>
+                            <div>
+                                <h2 style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>Phim liên quan</h2>
+                                <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Gợi ý theo thể loại, quốc gia và kiểu phim tương tự.</p>
+                            </div>
+                        </div>
+
+                        {relatedLoading ? (
+                            <div className="movie-grid">
+                                {[...Array(6)].map((_, index) => (
+                                    <div
+                                        key={index}
+                                        className="skeleton-anim"
+                                        style={{
+                                            aspectRatio: '2/3',
+                                            borderRadius: '12px',
+                                            background: 'linear-gradient(90deg, #1a1625 25%, #242033 50%, #1a1625 75%)',
+                                            backgroundSize: '200% 100%',
+                                            animation: 'skeleton-loading 1.5s infinite'
+                                        }}
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="movie-grid">
+                                {relatedMovies.map((item) => (
+                                    <MovieCard key={`${item.source || source}-${item.slug}`} movie={item} source={item.source || source} />
+                                ))}
+                            </div>
+                        )}
+                    </section>
+                )}
             </div>
         </div>
     );

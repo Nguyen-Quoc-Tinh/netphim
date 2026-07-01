@@ -49,6 +49,11 @@ export const getMovieDetails = async (slug, source = 'ophim') => {
     return res.data;
 };
 
+export const getRelatedMovies = async (slug, source = 'ophim') => {
+    const res = await api.get(`/movie/${slug}/related?source=${source}`);
+    return res.data;
+};
+
 export const getCategories = async () => {
     const res = await api.get('/categories');
     return res.data;
