@@ -56,12 +56,14 @@ export const getRelatedMovies = async (slug, source = 'ophim') => {
 
 export const getCategories = async () => {
     const res = await api.get('/categories');
-    return res.data;
+    const items = res.data?.data?.items || res.data;
+    return Array.isArray(items) ? items : [];
 };
 
 export const getCountries = async () => {
     const res = await api.get('/countries');
-    return res.data;
+    const items = res.data?.data?.items || res.data;
+    return Array.isArray(items) ? items : [];
 };
 
 export const getKKPhimList = async (type, page = 1) => {

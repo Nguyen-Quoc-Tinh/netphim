@@ -216,17 +216,55 @@ const getSeriesKeywords = (movie = {}) => {
     return [...new Set(keywords)].slice(0, 3);
 };
 
+const getExpandedSeriesQueries = (movie = {}) => {
+    const keywords = getSeriesKeywords(movie);
+    const primaryKeyword = keywords[0];
+    const queries = [];
+    for (const keyword of keywords) {
+        queries.push(keyword);
+    }
+    if (primaryKeyword) {
+        for (let index = 1; index <= 8; index++) {
+            queries.push(`${primaryKeyword} phần ${index}`);
+            queries.push(`${primaryKeyword} phan ${index}`);
+            queries.push(`${primaryKeyword} season ${index}`);
+            queries.push(`${primaryKeyword} part ${index}`);
+        }
+    }
+    return [...new Set(queries)].slice(0, 36);
+};
+
+const scoreSeriesItem = (item = {}, keywords = []) => {
+    const haystack = `${stripSeriesMarkers(item.name || '')} ${stripSeriesMarkers(item.origin_name || '')}`.toLowerCase();
+    return keywords.reduce((score, keyword) => haystack.includes(keyword.toLowerCase()) ? score + 1 : score, 0);
+};
+
+const sortSeriesFirst = (items = [], movie = {}) => {
+    const keywords = getSeriesKeywords(movie);
+    return [...items].sort((left, right) => scoreSeriesItem(right, keywords) - scoreSeriesItem(left, keywords));
+};
+
 const getMovieItem = (payload) => payload?.movie || payload?.data?.item || payload;
 
 const getFranchiseMatchesFromExternal = async (movie, slug, source) => {
-    const keywords = getSeriesKeywords(movie);
+    const baseQueries = getSeriesKeywords(movie);
+    const expandedQueries = getExpandedSeriesQueries(movie).filter(query => !baseQueries.includes(query));
     const items = [];
-    for (const keyword of keywords) {
-        const data = await fetchData(`${OPHIM_API}/v1/api/tim-kiem?keyword=${encodeURIComponent(keyword)}&page=1`, SHORT_API_CACHE_TTL);
+    for (const query of baseQueries) {
+        const data = await fetchData(`${OPHIM_API}/v1/api/tim-kiem?keyword=${encodeURIComponent(query)}&page=1`, SHORT_API_CACHE_TTL);
         const nextItems = data?.data?.items || data?.items || [];
         items.push(...nextItems);
+        if (normalizeMovieItems(items, source, slug).length >= 18) break;
     }
-    return normalizeMovieItems(items, source, slug);
+    if (normalizeMovieItems(items, source, slug).length < 4) {
+        for (const query of expandedQueries) {
+            const data = await fetchData(`${OPHIM_API}/v1/api/tim-kiem?keyword=${encodeURIComponent(query)}&page=1`, SHORT_API_CACHE_TTL);
+            const nextItems = data?.data?.items || data?.items || [];
+            items.push(...nextItems);
+            if (normalizeMovieItems(items, source, slug).length >= 18) break;
+        }
+    }
+    return sortSeriesFirst(normalizeMovieItems(items, source, slug), movie);
 };
 
 const getRelatedFromExternal = async (movie, slug, source) => {
@@ -249,7 +287,7 @@ const getRelatedFromExternal = async (movie, slug, source) => {
         if (items.length >= 18) break;
     }
 
-    return normalizeMovieItems(items, source, slug).slice(0, 18);
+    return sortSeriesFirst(normalizeMovieItems(items, source, slug), movie).slice(0, 18);
 };
 
 // Helper to handle API requests
@@ -356,9 +394,9 @@ app.get('/api/movie/:slug/related', async (req, res) => {
             const movie = await Movie.findOne({ slug }).lean();
             if (!movie) return res.json({ items: [] });
 
-            const seriesKeywords = getSeriesKeywords(movie);
-            const seriesFilters = seriesKeywords.flatMap(keyword => {
-                const regex = new RegExp(escapeRegExp(keyword), 'i');
+            const seriesQueries = getExpandedSeriesQueries(movie);
+            const seriesFilters = seriesQueries.flatMap(queryText => {
+                const regex = new RegExp(escapeRegExp(queryText), 'i');
                 return [{ name: regex }, { origin_name: regex }];
             });
             const categoryNames = (movie.category || []).map(item => item?.name).filter(Boolean);
@@ -379,6 +417,7 @@ app.get('/api/movie/:slug/related', async (req, res) => {
                     .sort({ _id: -1 })
                     .limit(18)
                     .lean();
+                related = sortSeriesFirst(related, movie);
             }
 
             if (related.length < 18) {
