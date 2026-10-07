@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, Play, Menu, X, ChevronDown, User } from 'lucide-react';
 import { getCategories, getCountries, searchMovies } from '../utils/api';
+import { getMovieImageUrl } from '../utils/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import ChangePasswordModal from './ChangePasswordModal';
@@ -228,17 +229,17 @@ const Navbar = () => {
                                                     onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                                                 >
                                                     <img 
-                                                        src={movie.thumb_url?.startsWith('http') 
-                                                            ? movie.thumb_url 
-                                                            : (movie.source === 'ophim' 
-                                                                ? `https://img.ophim.live/uploads/movies/${movie.thumb_url}`
-                                                                : `https://phimimg.com/${movie.thumb_url}`)} 
+                                                        src={getMovieImageUrl(movie, 'thumb_url')} 
                                                         referrerPolicy="no-referrer"
                                                         style={{ width: '50px', height: '70px', borderRadius: '6px', objectFit: 'cover' }}
-                                                        alt={movie.name}
+                                                        alt={movie?.name || 'Movie'}
                                                         onError={(e) => {
-                                                            if (movie.source === 'ophim') e.target.src = `https://phimimg.com/${movie.thumb_url}`;
-                                                            else e.target.src = `https://img.ophim.live/uploads/movies/${movie.thumb_url}`;
+                                                            if (movie?.thumb_url && typeof movie.thumb_url === 'string') {
+                                                                if (movie.source === 'ophim') e.target.src = `https://img.ophim.live/uploads/movies/${movie.thumb_url}`;
+                                                                else e.target.src = `https://phimimg.com/${movie.thumb_url}`;
+                                                            } else {
+                                                                e.target.src = '/placeholder.svg';
+                                                            }
                                                         }}
                                                     />
                                                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '0.2rem' }}>

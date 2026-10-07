@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { getMovieDetails, getRelatedMovies, toggleFavorite, addToHistory, getUserProfile } from '../utils/api';
+import { getMovieImageUrl } from '../utils/image';
 import MovieCard from '../components/MovieCard';
 import { 
     Play, Calendar, Clock, Globe, Tag, Star, Share2, List, 
@@ -266,7 +267,12 @@ const MovieDetails = () => {
 
                     <aside>
                         <div style={{ background: 'var(--surface-color)', padding: '2rem', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                            <img src={movie.thumb_url?.startsWith('http') ? movie.thumb_url : `https://phimimg.com/${movie.thumb_url}`} style={{ width: '100%', borderRadius: '12px', marginBottom: '1.5rem' }} alt="poster" />
+                            <img 
+                                src={getMovieImageUrl(movie, 'thumb_url')} 
+                                style={{ width: '100%', borderRadius: '12px', marginBottom: '1.5rem' }} 
+                                alt={movie?.name || "poster"} 
+                                onError={(e) => { e.target.src = '/placeholder.svg'; }}
+                            />
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.9rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ opacity: 0.5, color: 'var(--text-secondary)' }}>Trạng thái</span><span>{movie.episode_current}</span></div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ opacity: 0.5, color: 'var(--text-secondary)' }}>Thời lượng</span><span>{movie.time}</span></div>

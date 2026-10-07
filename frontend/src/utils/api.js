@@ -23,10 +23,13 @@ api.interceptors.response.use((response) => response, (error) => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         
-        // Use a flag to avoid multiple alerts
-        if (!window.logoutInProcess) {
+        const isAuthLogin = error.config?.url?.includes('/auth/login');
+        const isLoginPage = typeof window !== 'undefined' && window.location.pathname === '/login';
+
+        // Avoid alert loops if already on login page or if failed auth login
+        if (!isAuthLogin && !isLoginPage && !window.logoutInProcess) {
             window.logoutInProcess = true;
-            const msg = error.response.data?.message || 'Phiên đăng nhập hết hạn';
+            const msg = error.response.data?.message || 'Phiên đăng nhập đã hết hạn';
             alert(msg);
             window.location.href = '/login';
         }

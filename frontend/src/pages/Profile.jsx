@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getUserProfile, clearHistory, deleteHistoryItem } from '../utils/api';
+import { getMovieImageUrl } from '../utils/image';
 import { Link } from 'react-router-dom';
 import { Heart, Clock, User, Film, ChevronRight, Trash2, X } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -39,9 +40,10 @@ const Profile = () => {
                     >
                         <div style={{ aspectRatio: '2/3', position: 'relative' }}>
                             <img 
-                                src={movie.thumb_url?.startsWith('http') ? movie.thumb_url : `https://phimimg.com/${movie.thumb_url}`} 
+                                src={getMovieImageUrl(movie, 'thumb_url')} 
                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                                alt={movie.name} 
+                                alt={movie?.name || 'Movie'} 
+                                onError={(e) => { e.target.src = '/placeholder.svg'; }}
                             />
                         </div>
                         <div style={{ padding: '0.8rem' }}>
@@ -140,9 +142,10 @@ const Profile = () => {
                                             >
                                                 <div style={{ aspectRatio: '2/3', position: 'relative' }}>
                                                     <img 
-                                                        src={movie.thumb_url?.startsWith('http') ? movie.thumb_url : `https://phimimg.com/${movie.thumb_url}`} 
+                                                        src={getMovieImageUrl(movie, 'thumb_url')} 
                                                         style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                                                        alt={movie.name} 
+                                                        alt={movie?.name || 'Movie'} 
+                                                        onError={(e) => { e.target.src = '/placeholder.svg'; }}
                                                     />
                                                 </div>
                                                 <div style={{ padding: '0.8rem' }}>

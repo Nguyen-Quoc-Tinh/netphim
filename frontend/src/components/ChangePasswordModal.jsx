@@ -101,10 +101,13 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
                                 )}
 
                                 <div style={{ marginBottom: '1.2rem' }}>
-                                    <label style={{ display: 'block', fontSize: '0.85rem', opacity: 0.6, marginBottom: '0.5rem' }}>Mật khẩu hiện tại</label>
+                                    <label htmlFor="currentPassword" style={{ display: 'block', fontSize: '0.85rem', opacity: 0.6, marginBottom: '0.5rem' }}>Mật khẩu hiện tại</label>
                                     <div style={{ position: 'relative' }}>
                                         <input 
+                                            id="currentPassword"
+                                            name="currentPassword"
                                             type={showCurrent ? "text" : "password"} 
+                                            autoComplete="current-password"
                                             value={currentPassword}
                                             onChange={(e) => setCurrentPassword(e.target.value)}
                                             style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '0.8rem 3rem 0.8rem 1rem', color: '#fff', outline: 'none' }}
@@ -117,10 +120,13 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
                                 </div>
 
                                 <div style={{ marginBottom: '1.2rem' }}>
-                                    <label style={{ display: 'block', fontSize: '0.85rem', opacity: 0.6, marginBottom: '0.5rem' }}>Mật khẩu mới</label>
+                                    <label htmlFor="newPassword" style={{ display: 'block', fontSize: '0.85rem', opacity: 0.6, marginBottom: '0.5rem' }}>Mật khẩu mới</label>
                                     <div style={{ position: 'relative' }}>
                                         <input 
+                                            id="newPassword"
+                                            name="newPassword"
                                             type={showNew ? "text" : "password"} 
+                                            autoComplete="new-password"
                                             value={newPassword}
                                             onChange={(e) => setNewPassword(e.target.value)}
                                             style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '0.8rem 3rem 0.8rem 1rem', color: '#fff', outline: 'none' }}
@@ -133,10 +139,13 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
                                 </div>
 
                                 <div style={{ marginBottom: '2rem' }}>
-                                    <label style={{ display: 'block', fontSize: '0.85rem', opacity: 0.6, marginBottom: '0.5rem' }}>Xác nhận mật khẩu mới</label>
+                                    <label htmlFor="confirmPassword" style={{ display: 'block', fontSize: '0.85rem', opacity: 0.6, marginBottom: '0.5rem' }}>Xác nhận mật khẩu mới</label>
                                     <div style={{ position: 'relative' }}>
                                         <input 
+                                            id="confirmPassword"
+                                            name="confirmPassword"
                                             type={showConfirm ? "text" : "password"} 
+                                            autoComplete="new-password"
                                             value={confirmPassword}
                                             onChange={(e) => setConfirmPassword(e.target.value)}
                                             style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '0.8rem 3rem 0.8rem 1rem', color: '#fff', outline: 'none' }}

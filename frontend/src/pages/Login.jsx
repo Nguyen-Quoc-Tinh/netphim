@@ -88,11 +88,14 @@ const Login = () => {
                     )}
 
                     <div style={{ marginBottom: '1.5rem' }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)' }}>Tên đăng nhập</label>
+                        <label htmlFor="username" style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)' }}>Tên đăng nhập</label>
                         <div style={{ position: 'relative' }}>
                             <User size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }} />
                             <input 
+                                id="username"
+                                name="username"
                                 type="text" 
+                                autoComplete="username"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
                                 style={{ 
@@ -100,9 +103,9 @@ const Login = () => {
                                     background: 'rgba(255,255,255,0.05)', 
                                     border: '1px solid rgba(255,255,255,0.1)', 
                                     borderRadius: '12px', 
-                                    padding: '0.8rem 1rem 0.8rem 3rem',
-                                    color: '#fff',
-                                    outline: 'none'
+                                    padding: '0.8rem 1rem 0.8rem 3rem', 
+                                    color: '#fff', 
+                                    outline: 'none' 
                                 }}
                                 required
                             />
@@ -110,11 +113,14 @@ const Login = () => {
                     </div>
 
                     <div style={{ marginBottom: '2rem' }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)' }}>Mật khẩu</label>
+                        <label htmlFor="password" style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)' }}>Mật khẩu</label>
                         <div style={{ position: 'relative' }}>
                             <Lock size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }} />
                             <input 
+                                id="password"
+                                name="password"
                                 type={showPassword ? "text" : "password"} 
+                                autoComplete="current-password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 style={{ 
@@ -122,9 +128,9 @@ const Login = () => {
                                     background: 'rgba(255,255,255,0.05)', 
                                     border: '1px solid rgba(255,255,255,0.1)', 
                                     borderRadius: '12px', 
-                                    padding: '0.8rem 3rem 0.8rem 3rem',
-                                    color: '#fff',
-                                    outline: 'none'
+                                    padding: '0.8rem 3rem 0.8rem 3rem', 
+                                    color: '#fff', 
+                                    outline: 'none' 
                                 }}
                                 required
                             />

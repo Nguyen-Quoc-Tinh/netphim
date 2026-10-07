@@ -2,21 +2,15 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Play, Star, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { getMovieImageUrl } from '../utils/image';
 
 const MovieCard = ({ movie, source = 'ophim' }) => {
     // Determine the source if not provided
-    const effectiveSource = movie.source || source;
+    const effectiveSource = movie?.source || source;
     
     // Smart Image Fallback
     const getImageUrl = () => {
-        if (!movie.thumb_url) return '/placeholder.png';
-        if (movie.thumb_url.startsWith('http')) return movie.thumb_url;
-        
-        // Use phimimg.com for Ophim as it's the most reliable for v1
-        if (effectiveSource === 'ophim' || effectiveSource === 'kkphim') {
-            return `https://phimimg.com/${movie.thumb_url}`;
-        }
-        return `https://phimimg.com/${movie.thumb_url}`;
+        return getMovieImageUrl(movie, 'thumb_url');
     };
 
     return (
@@ -25,7 +19,7 @@ const MovieCard = ({ movie, source = 'ophim' }) => {
             transition={{ type: "spring", stiffness: 300 }}
             style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden' }}
         >
-            <Link to={`/movie/${movie.slug}?source=${effectiveSource}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+            <Link to={`/movie/${movie?.slug}?source=${effectiveSource}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className="movie-card-container" style={{
                     position: 'relative',
                     aspectRatio: '2/3',
@@ -38,14 +32,16 @@ const MovieCard = ({ movie, source = 'ophim' }) => {
                     {/* Poster Image */}
                     <img 
                         src={getImageUrl()} 
-                        alt={movie.name}
+                        alt={movie?.name || 'Movie'}
                         loading="lazy"
                         decoding="async"
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         onError={(e) => {
                             // Only try fallback if thumb_url is not already a full URL
-                            if (!movie.thumb_url.startsWith('http') && !e.target.src.includes('img.phimapi.com')) {
+                            if (movie?.thumb_url && typeof movie.thumb_url === 'string' && !movie.thumb_url.startsWith('http') && !e.target.src.includes('img.phimapi.com')) {
                                 e.target.src = `https://img.phimapi.com/upload/poster/${movie.thumb_url}`;
+                            } else {
+                                e.target.src = '/placeholder.svg';
                             }
                         }}
                     />

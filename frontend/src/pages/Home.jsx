@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getHome, getLocalMovies, api } from '../utils/api';
+import { getMovieImageUrl } from '../utils/image';
 import MovieCard from '../components/MovieCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Info, Heart, ChevronUp, ChevronLeft } from 'lucide-react';
@@ -120,11 +121,12 @@ const Home = () => {
                         }}
                     >
                         <img 
-                            src={currentHero.thumb_url.startsWith('http') ? currentHero.thumb_url : `https://phimimg.com/${currentHero.thumb_url}`} 
+                            src={getMovieImageUrl(currentHero, 'thumb_url')} 
                             style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.7)' }} 
-                            alt="Hero"
+                            alt={currentHero.name || "Hero"}
                             loading="eager"
                             fetchPriority="high"
+                            onError={(e) => { e.target.src = '/placeholder.svg'; }}
                         />
                         <div style={{
                             position: 'absolute',
@@ -185,7 +187,7 @@ const Home = () => {
                             }}>
                                 {featuredMovies.map((m, idx) => (
                                     <div 
-                                        key={m._id}
+                                        key={m._id || idx}
                                         onClick={() => setHeroIndex(idx)}
                                         style={{
                                             width: '100px',
@@ -197,7 +199,12 @@ const Home = () => {
                                             transition: '0.3s'
                                         }}
                                     >
-                                        <img src={m.thumb_url.startsWith('http') ? m.thumb_url : `https://phimimg.com/${m.thumb_url}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="thumb" />
+                                        <img 
+                                            src={getMovieImageUrl(m, 'thumb_url')} 
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                            alt={m?.name || "thumb"}
+                                            onError={(e) => { e.target.src = '/placeholder.svg'; }}
+                                        />
                                     </div>
                                 ))}
                             </div>
@@ -293,10 +300,11 @@ const Home = () => {
                                 <div key={m._id} style={{ minWidth: 'min(220px, 68vw)', maxWidth: '220px', cursor: 'pointer' }} onClick={() => navigate(`/movie/${m.slug}?source=kkphim`)}>
                                     <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', aspectRatio: '16/10', marginBottom: '0.8rem' }}>
                                         <img 
-                                            src={m.thumb_url?.startsWith('http') ? m.thumb_url : `https://phimimg.com/${m.thumb_url}`} 
+                                            src={getMovieImageUrl(m, 'thumb_url')} 
                                             referrerPolicy="no-referrer"
                                             style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                                             alt={m.name} 
+                                            onError={(e) => { e.target.src = '/placeholder.svg'; }}
                                         />
                                         <div style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'rgba(0,0,0,0.6)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 'bold' }}>
                                             PD. {m.episode_current?.replace('Tập ', '') || 'HD'}
@@ -358,10 +366,11 @@ const Home = () => {
                                     onClick={() => navigate(`/movie/${m.slug}?source=kkphim`)}
                                 >
                                     <img 
-                                        src={m.thumb_url?.startsWith('http') ? m.thumb_url : `https://phimimg.com/${m.thumb_url}`} 
+                                        src={getMovieImageUrl(m, 'thumb_url')} 
                                         referrerPolicy="no-referrer"
                                         style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                                         alt={m.name} 
+                                        onError={(e) => { e.target.src = '/placeholder.svg'; }}
                                     />
                                     <div style={{ position: 'absolute', bottom: '10px', right: '10px', background: 'rgba(0,0,0,0.7)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem' }}>
                                         {m.episode_current || 'HD'}
@@ -410,16 +419,17 @@ const Home = () => {
                             <div key={m._id} style={{ minWidth: 'min(400px, 85%)', cursor: 'pointer' }} onClick={() => navigate(`/movie/${m.slug}?source=kkphim`)}>
                                 <div style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', aspectRatio: '16/9', marginBottom: '1.2rem' }}>
                                     <img 
-                                        src={m.thumb_url?.startsWith('http') ? m.thumb_url : `https://phimimg.com/${m.thumb_url}`} 
+                                        src={getMovieImageUrl(m, 'thumb_url')} 
                                         style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                                         alt={m.name} 
+                                        onError={(e) => { e.target.src = '/placeholder.svg'; }}
                                     />
                                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 60%)' }}></div>
                                     
                                     {/* Thumbnail overlay like screenshot */}
                                     <div style={{ position: 'absolute', bottom: '15px', left: '15px', display: 'flex', alignItems: 'flex-end', gap: '10px' }}>
                                         <div style={{ width: '70px', height: '100px', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                                            <img src={m.poster_url?.startsWith('http') ? m.poster_url : `https://phimimg.com/${m.poster_url}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="poster" />
+                                            <img src={getMovieImageUrl(m, 'poster_url')} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="poster" onError={(e) => { e.target.src = '/placeholder.svg'; }} />
                                         </div>
                                         <div style={{ background: '#fff', color: '#000', fontSize: '0.65rem', fontWeight: 800, padding: '4px 10px', borderRadius: '4px', marginBottom: '5px' }}>
                                             Sáp chiếu
@@ -471,9 +481,10 @@ const Home = () => {
                                     style={{ position: 'absolute', inset: 0 }}
                                 >
                                     <img 
-                                        src={animeMovies[animeIndex].thumb_url?.startsWith('http') ? animeMovies[animeIndex].thumb_url : `https://phimimg.com/${animeMovies[animeIndex].thumb_url}`} 
+                                        src={getMovieImageUrl(animeMovies[animeIndex], 'thumb_url')} 
                                         style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4 }} 
                                         alt="backdrop" 
+                                        onError={(e) => { e.target.src = '/placeholder.svg'; }}
                                     />
                                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, #0d0d0f 20%, transparent 80%)' }}></div>
                                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, #0d0d0f 10%, transparent 40%)' }}></div>
@@ -589,9 +600,10 @@ const Home = () => {
                                     }}
                                 >
                                     <img 
-                                        src={m.thumb_url?.startsWith('http') ? m.thumb_url : `https://phimimg.com/${m.thumb_url}`} 
+                                        src={getMovieImageUrl(m, 'thumb_url')} 
                                         style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                                         alt="anime-thumb" 
+                                        onError={(e) => { e.target.src = '/placeholder.svg'; }}
                                     />
                                 </div>
                             ))}

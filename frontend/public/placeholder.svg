@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="450" viewBox="0 0 300 450">
+  <rect fill="#1a1a1e" width="300" height="450"/>
+  <circle cx="150" cy="180" r="25" fill="#333339"/>
+  <polygon points="110,270 190,270 165,220 145,245 130,230" fill="#333339"/>
+  <text x="50%" y="72%" dominant-baseline="middle" text-anchor="middle" fill="#666672" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" letter-spacing="2">NETPHIM</text>
+</svg>
