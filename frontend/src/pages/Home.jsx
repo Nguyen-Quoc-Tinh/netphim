@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { getHome, getLocalMovies, api } from '../utils/api';
 import { getMovieImageUrl } from '../utils/image';
 import MovieCard from '../components/MovieCard';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Info, Heart, ChevronUp, ChevronLeft } from 'lucide-react';
+import { Play, Info, Heart, ChevronUp, ChevronLeft, ChevronRight, Flame, Sparkles, Star, Calendar, Clock, Film } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { HeroSkeleton, MovieCardSkeleton } from '../components/Skeleton';
 
@@ -19,6 +19,8 @@ const Home = () => {
     const [loading, setLoading] = useState(true);
     const [, setLoadingMore] = useState(false);
     const [heroIndex, setHeroIndex] = useState(0);
+    const [isHeroPaused, setIsHeroPaused] = useState(false);
+    const [progressKey, setProgressKey] = useState(0);
     const navigate = useNavigate();
     const topTenRef = React.useRef(null);
 
@@ -64,6 +66,58 @@ const Home = () => {
         fetchAllData();
     }, []);
 
+    const featuredMovies = data?.kkphim?.items?.slice(0, 8) || [];
+    const currentHero = featuredMovies[heroIndex] || featuredMovies[0];
+
+    // Autoplay slider (every 7s)
+    useEffect(() => {
+        if (!featuredMovies.length || isHeroPaused) return;
+        const interval = setInterval(() => {
+            setHeroIndex(prev => (prev + 1) % featuredMovies.length);
+            setProgressKey(prev => prev + 1);
+        }, 7000);
+        return () => clearInterval(interval);
+    }, [featuredMovies.length, isHeroPaused, heroIndex]);
+
+    const handleSelectHero = (idx) => {
+        setHeroIndex(idx);
+        setProgressKey(prev => prev + 1);
+    };
+
+    const handleNextHero = (e) => {
+        e?.stopPropagation();
+        if (!featuredMovies.length) return;
+        setHeroIndex(prev => (prev + 1) % featuredMovies.length);
+        setProgressKey(prev => prev + 1);
+    };
+
+    const handlePrevHero = (e) => {
+        e?.stopPropagation();
+        if (!featuredMovies.length) return;
+        setHeroIndex(prev => (prev - 1 + featuredMovies.length) % featuredMovies.length);
+        setProgressKey(prev => prev + 1);
+    };
+
+    const getCategoriesList = (movie) => {
+        if (!movie) return [];
+        if (Array.isArray(movie.category)) {
+            return movie.category.map(c => (typeof c === 'string' ? c : c.name)).filter(Boolean);
+        }
+        return [];
+    };
+
+    const getHeroDescription = (movie) => {
+        if (!movie) return '';
+        if (movie.content) {
+            const clean = movie.content.replace(/<[^>]*>/g, '').trim();
+            if (clean.length > 30) return clean;
+        }
+        const cats = getCategoriesList(movie).slice(0, 3).join(', ');
+        const country = movie.country?.[0]?.name || '';
+        const origin = movie.origin_name ? `(${movie.origin_name})` : '';
+        return `${movie.name} ${origin} là tác phẩm điện ảnh xuất sắc${country ? ` đến từ ${country}` : ''}${cats ? ` thuộc thể loại ${cats}` : ''}. Trải nghiệm ngay những thước phim lôi cuốn, kịch tính cùng chất lượng hình ảnh sắc nét và âm thanh đỉnh cao.`;
+    };
+
     const handlePageChange = async (newPage) => {
         const totalPages = Math.ceil(localData.total / 48);
         if (newPage < 1 || newPage > totalPages) return;
@@ -73,7 +127,6 @@ const Home = () => {
             const res = await getLocalMovies(newPage);
             setLocalData(res);
             setCurrentPage(newPage);
-            // Scroll to the start of local movies section
             document.getElementById('local-movies-section').scrollIntoView({ behavior: 'smooth' });
         } catch (err) {
             console.error(err);
@@ -95,125 +148,494 @@ const Home = () => {
         );
     }
 
-    const featuredMovies = data?.kkphim?.items?.slice(0, 6) || [];
-    const currentHero = featuredMovies[heroIndex];
-
     const scrollToTop = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     return (
         <div style={{ position: 'relative' }}>
-            {/* Hero Section */}
-            <AnimatePresence mode="wait">
-                {currentHero && (
-                    <motion.section 
-                        key={currentHero._id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.8 }}
-                        style={{
-                            minHeight: '60vh',
-                            height: '100vh',
-                            position: 'relative',
-                            overflow: 'hidden'
-                        }}
-                    >
-                        <img 
-                            src={getMovieImageUrl(currentHero, 'thumb_url')} 
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.7)' }} 
-                            alt={currentHero.name || "Hero"}
-                            loading="eager"
-                            fetchPriority="high"
-                            onError={(e) => { e.target.src = '/placeholder.svg'; }}
-                        />
-                        <div style={{
-                            position: 'absolute',
-                            inset: 0,
-                            background: 'linear-gradient(to right, rgba(13,13,15,0.9) 20%, rgba(13,13,15,0.4) 50%, transparent 100%), linear-gradient(to top, var(--bg-color) 0%, transparent 30%)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            padding: '0 5%'
-                        }}>
-                            <div style={{ maxWidth: '600px' }}>
+            {/* Premium Cinematic Hero Slider */}
+            {currentHero && (
+                <section 
+                    className="hero-slider-wrapper"
+                    onMouseEnter={() => setIsHeroPaused(true)}
+                    onMouseLeave={() => setIsHeroPaused(false)}
+                    style={{
+                        position: 'relative',
+                        minHeight: '85vh',
+                        height: '92vh',
+                        overflow: 'hidden',
+                        background: '#0a0a0c'
+                    }}
+                >
+                    {/* Animated Backdrop Image with Ken Burns zoom */}
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={currentHero._id || currentHero.slug || heroIndex}
+                            initial={{ scale: 1.08, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+                            style={{
+                                position: 'absolute',
+                                inset: 0,
+                                zIndex: 1
+                            }}
+                        >
+                            <img 
+                                src={getMovieImageUrl(currentHero, 'thumb_url')} 
+                                style={{ 
+                                    width: '100%', 
+                                    height: '100%', 
+                                    objectFit: 'cover', 
+                                    objectPosition: 'center 20%',
+                                    filter: 'brightness(0.85) contrast(1.08) saturate(1.05)'
+                                }} 
+                                alt={currentHero.name || "Hero"}
+                                loading="eager"
+                                fetchPriority="high"
+                                onError={(e) => { e.target.src = '/placeholder.svg'; }}
+                            />
+                        </motion.div>
+                    </AnimatePresence>
+
+                    {/* Ambient Glow & Multi-layer Gradients */}
+                    <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        zIndex: 2,
+                        background: `
+                            radial-gradient(circle at 15% 45%, rgba(139, 92, 246, 0.22) 0%, transparent 55%),
+                            linear-gradient(90deg, #0a0a0c 0%, rgba(10,10,12,0.95) 28%, rgba(10,10,12,0.65) 55%, rgba(10,10,12,0.15) 80%, transparent 100%),
+                            linear-gradient(to top, #0a0a0c 0%, rgba(10,10,12,0.9) 12%, transparent 40%),
+                            linear-gradient(to bottom, rgba(10,10,12,0.7) 0%, transparent 20%)
+                        `,
+                        pointerEvents: 'none'
+                    }} />
+
+                    {/* Hero Content Container */}
+                    <div className="container" style={{
+                        position: 'relative',
+                        zIndex: 3,
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        paddingTop: '60px',
+                        paddingBottom: '40px'
+                    }}>
+                        {/* Left Side: Movie Information & CTA */}
+                        <div style={{ maxWidth: '640px', width: '100%' }}>
+                            <AnimatePresence mode="wait">
                                 <motion.div
-                                    initial={{ y: 30, opacity: 0 }}
+                                    key={`hero-content-${currentHero._id || currentHero.slug}`}
+                                    initial={{ y: 25, opacity: 0 }}
                                     animate={{ y: 0, opacity: 1 }}
-                                    transition={{ delay: 0.3 }}
-                                    className="p-4 md:p-0"
+                                    exit={{ y: -20, opacity: 0 }}
+                                    transition={{ duration: 0.5, ease: 'easeOut' }}
                                 >
-                                    <h1 className="text-3xl md:text-7xl font-extrabold mb-2 md:mb-4 leading-none">{currentHero.name}</h1>
-                                    <h2 className="text-lg md:text-2xl opacity-80 mb-6">{currentHero.origin_name}</h2>
-                                    
-                                    <div style={{ display: 'flex', gap: '0.8rem', marginBottom: '1.5rem' }}>
-                                        <span className="badge badge-primary">IMDb 7.6</span>
-                                        <span className="badge">PG</span>
-                                        <span className="badge">{currentHero.year}</span>
-                                        <span className="badge">1h 48m</span>
+                                    {/* Top Trending Badge */}
+                                    <div style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '0.4rem',
+                                        background: 'rgba(252, 196, 25, 0.12)',
+                                        border: '1px solid rgba(252, 196, 25, 0.35)',
+                                        backdropFilter: 'blur(10px)',
+                                        padding: '0.35rem 0.9rem',
+                                        borderRadius: '50px',
+                                        marginBottom: '1rem',
+                                        boxShadow: '0 4px 15px rgba(252, 196, 25, 0.15)'
+                                    }}>
+                                        <Flame size={15} color="#fcc419" />
+                                        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#fcc419', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                                            Thịnh Hành #{heroIndex + 1}
+                                        </span>
                                     </div>
 
-                                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                                        {['Hành Động', 'Phiêu Lưu', 'Hài Hước'].map(tag => (
-                                            <span key={tag} style={{ fontSize: '0.8rem', opacity: 0.6, background: 'rgba(255,255,255,0.1)', padding: '0.2rem 0.8rem', borderRadius: '4px' }}>{tag}</span>
+                                    {/* Main Title */}
+                                    <h1 style={{
+                                        fontSize: 'clamp(2.2rem, 4.8vw, 4rem)',
+                                        fontWeight: 900,
+                                        lineHeight: 1.08,
+                                        marginBottom: '0.4rem',
+                                        color: '#ffffff',
+                                        textShadow: '0 4px 25px rgba(0,0,0,0.85)',
+                                        letterSpacing: '-0.02em'
+                                    }}>
+                                        {currentHero.name}
+                                    </h1>
+
+                                    {/* Origin Title */}
+                                    <h2 style={{
+                                        fontSize: 'clamp(1rem, 1.8vw, 1.4rem)',
+                                        fontWeight: 600,
+                                        color: 'rgba(255, 255, 255, 0.7)',
+                                        marginBottom: '1.2rem',
+                                        fontStyle: 'italic',
+                                        textShadow: '0 2px 10px rgba(0,0,0,0.6)'
+                                    }}>
+                                        {currentHero.origin_name}
+                                    </h2>
+
+                                    {/* Movie Meta Badges */}
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem', alignItems: 'center', marginBottom: '1.2rem' }}>
+                                        <span style={{
+                                            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                                            color: '#000',
+                                            fontWeight: 900,
+                                            fontSize: '0.75rem',
+                                            padding: '3px 9px',
+                                            borderRadius: '6px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '3px',
+                                            boxShadow: '0 2px 10px rgba(245, 158, 11, 0.3)'
+                                        }}>
+                                            <Star size={12} fill="#000" color="#000" /> 8.8 IMDb
+                                        </span>
+
+                                        <span style={{
+                                            background: 'rgba(139, 92, 246, 0.2)',
+                                            color: '#c4b5fd',
+                                            border: '1px solid rgba(139, 92, 246, 0.4)',
+                                            fontWeight: 800,
+                                            fontSize: '0.75rem',
+                                            padding: '3px 9px',
+                                            borderRadius: '6px'
+                                        }}>
+                                            {currentHero.quality || '4K Ultra HD'}
+                                        </span>
+
+                                        <span style={{
+                                            background: 'rgba(255, 255, 255, 0.1)',
+                                            color: '#fff',
+                                            fontWeight: 700,
+                                            fontSize: '0.75rem',
+                                            padding: '3px 9px',
+                                            borderRadius: '6px',
+                                            border: '1px solid rgba(255, 255, 255, 0.15)'
+                                        }}>
+                                            {currentHero.year || '2025'}
+                                        </span>
+
+                                        <span style={{
+                                            background: 'rgba(16, 185, 129, 0.15)',
+                                            color: '#34d399',
+                                            fontWeight: 700,
+                                            fontSize: '0.75rem',
+                                            padding: '3px 9px',
+                                            borderRadius: '6px',
+                                            border: '1px solid rgba(16, 185, 129, 0.3)'
+                                        }}>
+                                            {currentHero.episode_current || 'Full HD'}
+                                        </span>
+
+                                        {currentHero.lang && (
+                                            <span style={{
+                                                background: 'rgba(255, 255, 255, 0.08)',
+                                                color: 'rgba(255,255,255,0.85)',
+                                                fontSize: '0.75rem',
+                                                padding: '3px 9px',
+                                                borderRadius: '6px'
+                                            }}>
+                                                {currentHero.lang}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Dynamic Categories Tags */}
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', marginBottom: '1.4rem' }}>
+                                        {getCategoriesList(currentHero).slice(0, 4).map((tag, i) => (
+                                            <span 
+                                                key={i} 
+                                                style={{ 
+                                                    fontSize: '0.78rem', 
+                                                    color: 'rgba(255,255,255,0.85)', 
+                                                    background: 'rgba(255,255,255,0.06)', 
+                                                    border: '1px solid rgba(255,255,255,0.08)',
+                                                    padding: '0.25rem 0.75rem', 
+                                                    borderRadius: '20px',
+                                                    backdropFilter: 'blur(6px)'
+                                                }}
+                                            >
+                                                {tag}
+                                            </span>
                                         ))}
                                     </div>
 
-                                    <p className="hidden md:block text-slate-400 mb-10 text-base leading-relaxed opacity-80">
-                                        Sau khi phá giải vụ án lớn nhất trong lịch sử Zootopia, cặp đôi cảnh sát Judy Hopps và Nick Wilde nhận ra sự cộng tác của họ không bền vững như họ nghĩ...
+                                    {/* Dynamic Description */}
+                                    <p style={{
+                                        color: 'rgba(255, 255, 255, 0.75)',
+                                        fontSize: '0.95rem',
+                                        lineHeight: 1.65,
+                                        marginBottom: '2rem',
+                                        display: '-webkit-box',
+                                        WebkitLineClamp: 3,
+                                        WebkitBoxOrient: 'vertical',
+                                        overflow: 'hidden',
+                                        textShadow: '0 1px 4px rgba(0,0,0,0.5)',
+                                        maxWidth: '580px'
+                                    }}>
+                                        {getHeroDescription(currentHero)}
                                     </p>
 
-                                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                    {/* Action Buttons (Netflix Style) */}
+                                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
                                         <button 
-                                            className="btn btn-primary btn-circle" 
-                                            style={{ width: '60px', height: '60px' }}
                                             onClick={() => navigate(`/movie/${currentHero.slug}?source=kkphim`)}
+                                            style={{
+                                                background: 'linear-gradient(135deg, var(--primary-color) 0%, #6d28d9 100%)',
+                                                color: '#ffffff',
+                                                border: 'none',
+                                                padding: '0.9rem 2rem',
+                                                borderRadius: '50px',
+                                                fontSize: '1rem',
+                                                fontWeight: 800,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.6rem',
+                                                cursor: 'pointer',
+                                                boxShadow: '0 8px 25px rgba(139, 92, 246, 0.5)',
+                                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                                            }}
+                                            onMouseOver={(e) => {
+                                                e.currentTarget.style.transform = 'scale(1.05) translateY(-2px)';
+                                                e.currentTarget.style.boxShadow = '0 12px 30px rgba(139, 92, 246, 0.7)';
+                                            }}
+                                            onMouseOut={(e) => {
+                                                e.currentTarget.style.transform = 'scale(1) translateY(0)';
+                                                e.currentTarget.style.boxShadow = '0 8px 25px rgba(139, 92, 246, 0.5)';
+                                            }}
                                         >
-                                            <Play fill="black" size={28} />
+                                            <Play fill="#ffffff" size={20} />
+                                            <span>Xem Ngay</span>
                                         </button>
-                                        <button className="btn btn-glass btn-circle"><Heart size={20} /></button>
-                                        <button className="btn btn-glass btn-circle"><Info size={20} /></button>
+
+                                        <button 
+                                            onClick={() => navigate(`/movie/${currentHero.slug}?source=kkphim`)}
+                                            style={{
+                                                background: 'rgba(255, 255, 255, 0.08)',
+                                                color: '#ffffff',
+                                                border: '1px solid rgba(255, 255, 255, 0.15)',
+                                                backdropFilter: 'blur(10px)',
+                                                padding: '0.9rem 1.6rem',
+                                                borderRadius: '50px',
+                                                fontSize: '0.95rem',
+                                                fontWeight: 700,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.5rem',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.3s ease'
+                                            }}
+                                            onMouseOver={(e) => {
+                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.16)';
+                                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                            }}
+                                            onMouseOut={(e) => {
+                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                                                e.currentTarget.style.transform = 'translateY(0)';
+                                            }}
+                                        >
+                                            <Info size={19} />
+                                            <span>Chi Tiết</span>
+                                        </button>
+
+                                        <button 
+                                            title="Thêm vào danh sách yêu thích"
+                                            style={{
+                                                width: '48px',
+                                                height: '48px',
+                                                borderRadius: '50%',
+                                                background: 'rgba(255, 255, 255, 0.08)',
+                                                border: '1px solid rgba(255, 255, 255, 0.15)',
+                                                color: '#ffffff',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                cursor: 'pointer',
+                                                backdropFilter: 'blur(10px)',
+                                                transition: 'all 0.3s ease'
+                                            }}
+                                            onMouseOver={(e) => {
+                                                e.currentTarget.style.background = 'rgba(244, 63, 94, 0.2)';
+                                                e.currentTarget.style.borderColor = 'rgba(244, 63, 94, 0.5)';
+                                                e.currentTarget.style.color = '#fb7185';
+                                                e.currentTarget.style.transform = 'scale(1.1)';
+                                            }}
+                                            onMouseOut={(e) => {
+                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                                                e.currentTarget.style.color = '#ffffff';
+                                                e.currentTarget.style.transform = 'scale(1)';
+                                            }}
+                                        >
+                                            <Heart size={20} />
+                                        </button>
                                     </div>
                                 </motion.div>
+                            </AnimatePresence>
+                        </div>
+
+                        {/* Right Side: Modern Floating Thumbnail Dock with Autoplay Bar */}
+                        <div className="hidden lg:flex" style={{
+                            position: 'absolute',
+                            bottom: '35px',
+                            right: '4%',
+                            background: 'rgba(15, 12, 21, 0.75)',
+                            backdropFilter: 'blur(20px)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '24px',
+                            padding: '1.2rem',
+                            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6)',
+                            maxWidth: '560px',
+                            flexDirection: 'column',
+                            gap: '0.8rem',
+                            zIndex: 4
+                        }}>
+                            {/* Dock Header: Title, Counter & Next/Prev Controls */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <Sparkles size={16} color="var(--primary-color)" />
+                                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#fff', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                                        Đề Cử Đặc Sắc
+                                    </span>
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                                    <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.5)', fontWeight: 700 }}>
+                                        <b style={{ color: 'var(--primary-color)' }}>0{heroIndex + 1}</b> / 0{featuredMovies.length}
+                                    </span>
+                                    
+                                    <div style={{ display: 'flex', gap: '0.3rem' }}>
+                                        <button 
+                                            onClick={handlePrevHero}
+                                            style={{
+                                                width: '28px',
+                                                height: '28px',
+                                                borderRadius: '50%',
+                                                background: 'rgba(255,255,255,0.06)',
+                                                border: '1px solid rgba(255,255,255,0.1)',
+                                                color: '#fff',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                cursor: 'pointer',
+                                                transition: '0.2s'
+                                            }}
+                                            onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+                                            onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+                                        >
+                                            <ChevronLeft size={16} />
+                                        </button>
+                                        <button 
+                                            onClick={handleNextHero}
+                                            style={{
+                                                width: '28px',
+                                                height: '28px',
+                                                borderRadius: '50%',
+                                                background: 'rgba(255,255,255,0.06)',
+                                                border: '1px solid rgba(255,255,255,0.1)',
+                                                color: '#fff',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                cursor: 'pointer',
+                                                transition: '0.2s'
+                                            }}
+                                            onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+                                            onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+                                        >
+                                            <ChevronRight size={16} />
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
 
-                            {/* Hero Thumbnails */}
+                            {/* Autoplay Progress Line */}
                             <div style={{
-                                position: 'absolute',
-                                bottom: '10%',
-                                right: '5%',
-                                display: 'flex',
-                                gap: '1rem'
+                                width: '100%',
+                                height: '3px',
+                                background: 'rgba(255,255,255,0.1)',
+                                borderRadius: '3px',
+                                overflow: 'hidden'
                             }}>
-                                {featuredMovies.map((m, idx) => (
-                                    <div 
-                                        key={m._id || idx}
-                                        onClick={() => setHeroIndex(idx)}
-                                        style={{
-                                            width: '100px',
-                                            height: '60px',
-                                            borderRadius: '8px',
-                                            overflow: 'hidden',
-                                            cursor: 'pointer',
-                                            border: heroIndex === idx ? '2px solid var(--primary-color)' : '2px solid transparent',
-                                            transition: '0.3s'
-                                        }}
-                                    >
-                                        <img 
-                                            src={getMovieImageUrl(m, 'thumb_url')} 
-                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                                            alt={m?.name || "thumb"}
-                                            onError={(e) => { e.target.src = '/placeholder.svg'; }}
-                                        />
-                                    </div>
-                                ))}
+                                <motion.div 
+                                    key={progressKey}
+                                    initial={{ width: '0%' }}
+                                    animate={{ width: isHeroPaused ? '0%' : '100%' }}
+                                    transition={{ duration: 7, ease: 'linear' }}
+                                    style={{
+                                        height: '100%',
+                                        background: 'linear-gradient(90deg, var(--primary-color), #fcc419)',
+                                        borderRadius: '3px'
+                                    }}
+                                />
+                            </div>
+
+                            {/* Thumbnails Row */}
+                            <div style={{
+                                display: 'flex',
+                                gap: '0.7rem',
+                                overflowX: 'auto',
+                                scrollbarWidth: 'none',
+                                padding: '4px 0'
+                            }}>
+                                {featuredMovies.map((m, idx) => {
+                                    const isActive = heroIndex === idx;
+                                    return (
+                                        <div 
+                                            key={m._id || m.slug || idx}
+                                            onClick={() => handleSelectHero(idx)}
+                                            style={{
+                                                minWidth: '85px',
+                                                maxWidth: '85px',
+                                                height: '56px',
+                                                borderRadius: '10px',
+                                                overflow: 'hidden',
+                                                cursor: 'pointer',
+                                                position: 'relative',
+                                                border: isActive ? '2px solid var(--primary-color)' : '1px solid rgba(255,255,255,0.12)',
+                                                transform: isActive ? 'scale(1.06)' : 'scale(1)',
+                                                boxShadow: isActive ? '0 8px 20px rgba(139, 92, 246, 0.4)' : 'none',
+                                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                                            }}
+                                            onMouseOver={(e) => {
+                                                if (!isActive) e.currentTarget.style.transform = 'translateY(-3px)';
+                                            }}
+                                            onMouseOut={(e) => {
+                                                if (!isActive) e.currentTarget.style.transform = 'scale(1) translateY(0)';
+                                            }}
+                                        >
+                                            <img 
+                                                src={getMovieImageUrl(m, 'thumb_url')} 
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                                alt={m?.name || "thumb"}
+                                                onError={(e) => { e.target.src = '/placeholder.svg'; }}
+                                            />
+                                            {isActive && (
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    inset: 0,
+                                                    background: 'rgba(139, 92, 246, 0.25)',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center'
+                                                }}>
+                                                    <Play size={16} fill="#ffffff" color="#ffffff" />
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
-                    </motion.section>
-                )}
-            </AnimatePresence>
+                    </div>
+                </section>
+            )}
 
-            <div className="container" style={{ marginTop: '-50px', position: 'relative', zIndex: 10 }}>
+            <div className="container" style={{ marginTop: '-40px', position: 'relative', zIndex: 10 }}>
                 {/* Trending (Now on top) */}
                 <section style={{ marginBottom: '4rem' }}>
                     <h3 className="gradient-text" style={{ marginBottom: '1.5rem' }}>Phim Mới Cập Nhật</h3>
