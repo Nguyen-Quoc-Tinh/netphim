@@ -316,7 +316,7 @@ const Home = () => {
                                             borderRadius: '6px',
                                             border: '1px solid rgba(255, 255, 255, 0.15)'
                                         }}>
-                                            {currentHero.year || '2025'}
+                                            {currentHero.year || new Date().getFullYear()}
                                         </span>
 
                                         <span style={{

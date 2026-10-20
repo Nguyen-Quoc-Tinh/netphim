@@ -12,12 +12,18 @@ const FilterSection = ({ onFilter, onClose }) => {
         sort: 'Mới nhất'
     });
 
+    const currentYear = new Date().getFullYear();
+    const dynamicYears = ['Tất cả'];
+    for (let y = currentYear + 1; y >= 2010; y--) {
+        dynamicYears.push(String(y));
+    }
+
     const options = {
         countries: ['Tất cả', 'Trung Quốc', 'Âu Mỹ', 'Hàn Quốc', 'Indonesia', 'Philippines', 'Nga', 'Singapore', 'Nhật Bản', 'Thái Lan', 'Anh', 'Pháp', 'Bỉ', 'Hồng Kông', 'Canada', 'Úc', 'Ý', 'Tây Ban Nha', 'Ấn Độ', 'Na Uy', 'Đức', 'Việt Nam', 'Thổ Nhĩ Kỳ', 'Argentina', 'Hà Lan', 'Quốc Gia Khác'],
         types: ['Tất cả', 'Phim lẻ', 'Phim bộ'],
         ratings: ['Tất cả', 'P (Mọi lứa tuổi)', 'K (Dưới 13 tuổi)', 'T13 (13 tuổi trở lên)', 'T16 (16 tuổi trở lên)', 'T18 (18 tuổi trở lên)'],
         genres: ['Tất cả', 'Chính kịch', 'Hài Hước', 'Bí ẩn', 'Gia Đình', 'Hành Động', 'Viễn Tưởng', 'Hình Sự', 'Kinh Dị', 'Phiêu Lưu', 'Khoa Học', 'Cổ Trang', 'Võ Thuật', 'Short Drama', 'Tình Cảm', 'Tài Liệu', 'Tâm Lý', 'Âm Nhạc', 'Thể Thao', 'Chiến Tranh', 'Thần Thoại', 'Học Đường', 'Hoạt Hình', 'Chiếu Rạp'],
-        years: ['Tất cả', '2025', '2024', '2023', '2022', '2021', '2020', '2019', '2018', '2017', '2016', '2015', '2014', '2013', '2012', '2011', '2010'],
+        years: dynamicYears,
         sorts: ['Mới nhất', 'Điểm IMDb', 'Lượt xem']
     };
 
