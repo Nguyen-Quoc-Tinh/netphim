@@ -161,6 +161,7 @@ const generateRandomPassword = (length = 12) => {
 
 // Movie Schema (Dynamic/Flexible)
 const movieSchema = new mongoose.Schema({}, { strict: false });
+movieSchema.index({ slug: 1 }, { unique: true, sparse: true });
 const Movie = mongoose.model('Movie', movieSchema, 'movies'); // Assuming collection is 'movies'
 
 const OPHIM_API = 'https://phimapi.com';
@@ -316,6 +317,16 @@ const fetchData = async (url, ttl = PUBLIC_API_CACHE_TTL) => {
     }
 };
 
+// Helper: Deduplicate movie items by slug (keeps first occurrence)
+const deduplicateBySlug = (items = []) => {
+    const seen = new Set();
+    return items.filter(item => {
+        if (!item?.slug || seen.has(item.slug)) return false;
+        seen.add(item.slug);
+        return true;
+    });
+};
+
 // Unified Home API (Combines some data or just provides access)
 app.get('/api/home', async (req, res) => {
     // For Ophim v1, use phim-moi-cap-nhat (no v1/api prefix for this one)
@@ -327,6 +338,15 @@ app.get('/api/home', async (req, res) => {
     if (kkphimHomeP1?.items && kkphimHomeP2?.items) {
         combinedKK.items = [...kkphimHomeP1.items, ...kkphimHomeP2.items];
     }
+
+    // Deduplicate: kkphim items take priority, ophim items only if slug not already in kkphim
+    const kkSlugs = new Set((combinedKK.items || []).map(item => item?.slug).filter(Boolean));
+    if (ophimHome?.items) {
+        ophimHome.items = ophimHome.items.filter(item => !kkSlugs.has(item?.slug));
+    }
+    // Also dedup within each source
+    if (combinedKK.items) combinedKK.items = deduplicateBySlug(combinedKK.items);
+    if (ophimHome?.items) ophimHome.items = deduplicateBySlug(ophimHome.items);
 
     setPublicCacheHeaders(res, SHORT_API_CACHE_TTL);
     res.json({
@@ -352,10 +372,26 @@ app.get('/api/search', async (req, res) => {
         const ophimSearch = await fetchData(`${OPHIM_API}/v1/api/tim-kiem?keyword=${encodeURIComponent(keyword)}`);
         const kkphimSearch = await fetchData(`${KKPHIM_API}/v1/api/tim-kiem?keyword=${encodeURIComponent(keyword)}&page=${page}`);
         
+        // Deduplicate: local > kkphim > ophim (priority order)
+        const localSlugs = new Set(localResults.map(m => m.slug).filter(Boolean));
+        
+        let kkItems = kkphimSearch?.data?.items || [];
+        kkItems = kkItems.filter(item => !localSlugs.has(item?.slug));
+        const kkSlugs = new Set(kkItems.map(item => item?.slug).filter(Boolean));
+        
+        let opItems = ophimSearch?.data?.items || [];
+        opItems = opItems.filter(item => !localSlugs.has(item?.slug) && !kkSlugs.has(item?.slug));
+        
+        // Put deduped items back
+        const dedupedOphim = { ...ophimSearch };
+        if (dedupedOphim.data) dedupedOphim.data = { ...dedupedOphim.data, items: deduplicateBySlug(opItems) };
+        const dedupedKK = { ...kkphimSearch };
+        if (dedupedKK.data) dedupedKK.data = { ...dedupedKK.data, items: deduplicateBySlug(kkItems) };
+
         res.json({
             local: localResults,
-            ophim: ophimSearch,
-            kkphim: kkphimSearch
+            ophim: dedupedOphim,
+            kkphim: dedupedKK
         });
     } catch (error) {
         res.status(500).json({ message: error.message });

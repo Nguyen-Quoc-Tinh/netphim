@@ -31,10 +31,16 @@ const SearchResults = () => {
 
     if (loading) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div className="loader"></div></div>;
 
+    const localSlugs = new Set(results.local.map(m => m.slug).filter(Boolean));
+    const seen = new Set([...localSlugs]);
     const allResults = [
         ...results.kkphim.map(m => ({ ...m, source: 'kkphim' })),
         ...results.ophim.map(m => ({ ...m, source: 'ophim' }))
-    ];
+    ].filter(item => {
+        if (!item.slug || seen.has(item.slug)) return false;
+        seen.add(item.slug);
+        return true;
+    });
 
     return (
         <div className="container" style={{ paddingTop: '100px' }}>
