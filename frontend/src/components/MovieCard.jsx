@@ -40,10 +40,14 @@ const MovieCard = ({ movie, source = 'ophim' }) => {
             return;
         }
 
-        // Trigger popping animation immediately for snappy feedback
+        // 1. Phản hồi tức thì trong 0ms (Optimistic UI Update) - xóa bỏ hoàn toàn độ trễ mạng
+        const previousState = isFavorite;
+        const nextState = !previousState;
+        setIsFavorite(nextState);
         setIsPopping(true);
-        setTimeout(() => setIsPopping(false), 500);
+        setTimeout(() => setIsPopping(false), 450);
 
+        // 2. Gửi request ngầm lên server
         try {
             const res = await toggleFavorite({
                 slug: movie?.slug,
@@ -51,8 +55,12 @@ const MovieCard = ({ movie, source = 'ophim' }) => {
                 thumb_url: movie?.thumb_url,
                 source: effectiveSource
             });
-            setIsFavorite(res.isFavorite);
+            if (typeof res?.isFavorite === 'boolean') {
+                setIsFavorite(res.isFavorite);
+            }
         } catch (err) {
+            // Rollback lại trạng thái cũ nếu xảy ra lỗi mạng
+            setIsFavorite(previousState);
             console.error('Lỗi lưu phim yêu thích:', err);
         }
     };
