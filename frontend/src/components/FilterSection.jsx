@@ -14,7 +14,7 @@ const FilterSection = ({ onFilter, onClose }) => {
 
     const currentYear = new Date().getFullYear();
     const dynamicYears = ['Tất cả'];
-    for (let y = currentYear + 1; y >= 2010; y--) {
+    for (let y = currentYear; y >= 2010; y--) {
         dynamicYears.push(String(y));
     }
 
