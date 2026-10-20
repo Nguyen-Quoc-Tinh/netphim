@@ -9,7 +9,7 @@ import { toggleFavorite } from '../utils/api';
 const MovieCard = ({ movie, source = 'ophim' }) => {
     const effectiveSource = movie?.source || source;
     const [isFavorite, setIsFavorite] = useState(false);
-    const [isFavLoading, setIsFavLoading] = useState(false);
+    const [isPopping, setIsPopping] = useState(false);
     const navigate = useNavigate();
     const { user } = useAuth();
 
@@ -25,6 +25,12 @@ const MovieCard = ({ movie, source = 'ophim' }) => {
         return getMovieImageUrl(movie, 'thumb_url');
     };
 
+    const handlePlayClick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        navigate(`/movie/${movie?.slug}?source=${effectiveSource}`);
+    };
+
     const handleToggleFavorite = async (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -34,8 +40,9 @@ const MovieCard = ({ movie, source = 'ophim' }) => {
             return;
         }
 
-        if (isFavLoading) return;
-        setIsFavLoading(true);
+        // Trigger popping animation immediately for snappy feedback
+        setIsPopping(true);
+        setTimeout(() => setIsPopping(false), 500);
 
         try {
             const res = await toggleFavorite({
@@ -47,8 +54,6 @@ const MovieCard = ({ movie, source = 'ophim' }) => {
             setIsFavorite(res.isFavorite);
         } catch (err) {
             console.error('Lỗi lưu phim yêu thích:', err);
-        } finally {
-            setIsFavLoading(false);
         }
     };
 
@@ -88,19 +93,6 @@ const MovieCard = ({ movie, source = 'ophim' }) => {
 
                     {/* Glossy Light Sheen Sweep Effect */}
                     <div className="card-sheen" />
-
-                    {/* Nút Yêu Thích (Heart Button) on Hover */}
-                    <button
-                        onClick={handleToggleFavorite}
-                        className={`card-fav-btn ${isFavorite ? 'active' : ''}`}
-                        title={isFavorite ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'}
-                    >
-                        <Heart 
-                            size={16} 
-                            fill={isFavorite ? '#ef4444' : 'none'} 
-                            stroke={isFavorite ? '#ef4444' : '#ffffff'} 
-                        />
-                    </button>
 
                     {/* Top Right Badges (Episode / Trailer) */}
                     <div style={{
@@ -143,15 +135,7 @@ const MovieCard = ({ movie, source = 'ophim' }) => {
                         ) : null}
                     </div>
 
-                    {/* Floating Center Glassmorphic Play Button on Hover */}
-                    <div className="card-play-action">
-                        <div className="card-play-btn">
-                            <Play fill="white" color="white" size={22} style={{ marginLeft: '3px' }} />
-                        </div>
-                        <span className="card-play-text">Xem Ngay</span>
-                    </div>
-
-                    {/* Bottom Gradient & Title Metadata */}
+                    {/* Bottom Gradient & Information */}
                     <div className="card-meta-gradient">
                         <h3 className="card-title">
                             {movie.name}
@@ -173,7 +157,7 @@ const MovieCard = ({ movie, source = 'ophim' }) => {
                             display: 'flex', 
                             alignItems: 'center', 
                             gap: '0.6rem', 
-                            marginTop: '0.4rem',
+                            marginTop: '0.35rem',
                             fontSize: '0.75rem',
                             opacity: 0.85
                         }}>
@@ -194,6 +178,29 @@ const MovieCard = ({ movie, source = 'ophim' }) => {
                                 </span>
                             )}
                         </div>
+
+                        {/* Bottom Actions Row: Nút Xem Ngay + Nút Yêu Thích hình vuông */}
+                        <div className="card-actions-row">
+                            <button 
+                                onClick={handlePlayClick}
+                                className="card-watch-btn"
+                            >
+                                <Play size={13} fill="white" stroke="white" />
+                                <span>Xem Ngay</span>
+                            </button>
+
+                            <button
+                                onClick={handleToggleFavorite}
+                                className={`card-fav-square-btn ${isFavorite ? 'active' : ''} ${isPopping ? 'heart-popping' : ''}`}
+                                title={isFavorite ? 'Bỏ yêu thích' : 'Yêu thích'}
+                            >
+                                <Heart 
+                                    size={17} 
+                                    fill={isFavorite ? '#ef4444' : 'none'} 
+                                    stroke={isFavorite ? '#ef4444' : '#ffffff'} 
+                                />
+                            </button>
+                        </div>
                     </div>
                 </div>
             </Link>
@@ -203,7 +210,7 @@ const MovieCard = ({ movie, source = 'ophim' }) => {
                     transition: border-color 0.35s ease, box-shadow 0.35s ease, transform 0.35s ease;
                 }
                 .movie-card-container:hover {
-                    border-color: rgba(167, 139, 250, 0.6);
+                    border-color: rgba(167, 139, 250, 0.65);
                     box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.8), 0 0 24px rgba(139, 92, 246, 0.35);
                 }
                 .movie-poster-img {
@@ -225,99 +232,18 @@ const MovieCard = ({ movie, source = 'ophim' }) => {
                     transform: translateX(150%);
                 }
 
-                /* Nút Yêu Thích */
-                .card-fav-btn {
-                    position: absolute;
-                    top: 10px;
-                    left: 10px;
-                    width: 34px;
-                    height: 34px;
-                    border-radius: 50%;
-                    background: rgba(15, 12, 21, 0.75);
-                    border: 1px solid rgba(255, 255, 255, 0.2);
-                    backdrop-filter: blur(8px);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    cursor: pointer;
-                    z-index: 4;
-                    opacity: 0;
-                    transform: scale(0.8);
-                    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-                }
-                .movie-card-container:hover .card-fav-btn {
-                    opacity: 1;
-                    transform: scale(1);
-                }
-                .card-fav-btn.active {
-                    opacity: 1 !important;
-                    background: rgba(239, 68, 68, 0.2);
-                    border-color: rgba(239, 68, 68, 0.5);
-                }
-                .card-fav-btn:hover {
-                    transform: scale(1.15) !important;
-                    background: rgba(239, 68, 68, 0.35);
-                    border-color: #ef4444;
-                }
-
-                /* Nút Play trung tâm */
-                .card-play-action {
-                    position: absolute;
-                    inset: 0;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 0.6rem;
-                    z-index: 3;
-                    pointer-events: none;
-                    opacity: 0;
-                    transform: scale(0.85);
-                    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-                }
-                .movie-card-container:hover .card-play-action {
-                    opacity: 1;
-                    transform: scale(1);
-                }
-                .card-play-btn {
-                    width: 52px;
-                    height: 52px;
-                    border-radius: 50%;
-                    background: linear-gradient(135deg, #a78bfa, #7c3aed);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    box-shadow: 0 8px 24px rgba(124, 58, 237, 0.65), 0 0 0 4px rgba(255, 255, 255, 0.18);
-                    transition: transform 0.2s ease;
-                }
-                .card-play-text {
-                    color: #fff;
-                    font-size: 0.75rem;
-                    font-weight: 800;
-                    letter-spacing: 0.5px;
-                    text-transform: uppercase;
-                    background: rgba(15, 12, 21, 0.75);
-                    padding: 3px 12px;
-                    border-radius: 20px;
-                    border: 1px solid rgba(255,255,255,0.2);
-                    backdrop-filter: blur(6px);
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-                }
-
                 /* Gradient thông tin bên dưới */
                 .card-meta-gradient {
                     position: absolute;
                     bottom: 0;
                     left: 0;
                     right: 0;
-                    height: 50%;
-                    background: linear-gradient(to top, rgba(10, 8, 16, 0.98) 0%, rgba(10, 8, 16, 0.7) 60%, transparent 100%) !important;
+                    background: linear-gradient(to top, rgba(10, 8, 16, 0.98) 0%, rgba(10, 8, 16, 0.85) 65%, transparent 100%);
                     display: flex;
                     flex-direction: column;
                     justifyContent: flex-end;
-                    padding: 1rem;
-                    z-index: 2;
+                    padding: 0.9rem;
+                    z-index: 4;
                     transition: all 0.3s ease;
                 }
                 .card-title {
@@ -330,11 +256,99 @@ const MovieCard = ({ movie, source = 'ophim' }) => {
                     -webkit-box-orient: vertical;
                     overflow: hidden;
                     line-height: 1.35;
-                    transition: color 0.3s ease, transform 0.3s ease;
+                    transition: color 0.3s ease;
                 }
                 .movie-card-container:hover .card-title {
                     color: #c4b5fd;
-                    transform: translateY(-2px);
+                }
+
+                /* Hàng nút bấm phía dưới (Xem Ngay + Yêu Thích) */
+                .card-actions-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin-top: 0.65rem;
+                    opacity: 0;
+                    max-height: 0;
+                    transform: translateY(8px);
+                    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+                    overflow: hidden;
+                }
+                .movie-card-container:hover .card-actions-row {
+                    opacity: 1;
+                    max-height: 44px;
+                    transform: translateY(0);
+                }
+
+                /* Nút Xem Ngay */
+                .card-watch-btn {
+                    flex: 1;
+                    height: 36px;
+                    background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    border-radius: 8px;
+                    color: #fff;
+                    font-size: 0.8rem;
+                    font-weight: 700;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 6px;
+                    cursor: pointer;
+                    box-shadow: 0 4px 12px rgba(109, 40, 217, 0.4);
+                    transition: all 0.2s ease;
+                }
+                .card-watch-btn:hover {
+                    background: linear-gradient(135deg, #9333ea, #7c3aed);
+                    transform: translateY(-1px);
+                    box-shadow: 0 6px 16px rgba(124, 58, 237, 0.6);
+                }
+
+                /* Nút Yêu Thích hình vuông */
+                .card-fav-square-btn {
+                    width: 36px;
+                    height: 36px;
+                    flex-shrink: 0;
+                    border-radius: 8px;
+                    background: rgba(255, 255, 255, 0.1);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    backdrop-filter: blur(8px);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+                .card-fav-square-btn:hover {
+                    background: rgba(239, 68, 68, 0.2);
+                    border-color: rgba(239, 68, 68, 0.5);
+                    transform: translateY(-1px);
+                }
+                .card-fav-square-btn.active {
+                    background: rgba(239, 68, 68, 0.25);
+                    border-color: rgba(239, 68, 68, 0.6);
+                }
+
+                /* Hiệu ứng nảy tim sống động khi bấm */
+                @keyframes heartPulse {
+                    0% { transform: scale(1); }
+                    25% { transform: scale(1.45) rotate(-10deg); }
+                    50% { transform: scale(0.85) rotate(6deg); }
+                    75% { transform: scale(1.2) rotate(-3deg); }
+                    100% { transform: scale(1) rotate(0deg); }
+                }
+                .heart-popping {
+                    animation: heartPulse 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                    box-shadow: 0 0 16px rgba(239, 68, 68, 0.8) !important;
+                    background: rgba(239, 68, 68, 0.35) !important;
+                }
+
+                @media (max-width: 768px) {
+                    .card-actions-row {
+                        opacity: 1;
+                        max-height: 44px;
+                        transform: translateY(0);
+                    }
                 }
             `}</style>
         </motion.div>
