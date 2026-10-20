@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Info, Heart, ChevronUp, ChevronLeft, ChevronRight, Flame, Sparkles, Star, Calendar, Clock, Film } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { HeroSkeleton, MovieCardSkeleton } from '../components/Skeleton';
+import SeasonalHeroBanner from '../theme/SeasonalHeroBanner';
 
 const Home = () => {
     const [data, setData] = useState(null);
@@ -234,23 +235,32 @@ const Home = () => {
                                     exit={{ y: -20, opacity: 0 }}
                                     transition={{ duration: 0.5, ease: 'easeOut' }}
                                 >
-                                    {/* Top Trending Badge */}
+                                    {/* Badges Container */}
                                     <div style={{
-                                        display: 'inline-flex',
+                                        display: 'flex',
                                         alignItems: 'center',
-                                        gap: '0.4rem',
-                                        background: 'rgba(252, 196, 25, 0.12)',
-                                        border: '1px solid rgba(252, 196, 25, 0.35)',
-                                        backdropFilter: 'blur(10px)',
-                                        padding: '0.35rem 0.9rem',
-                                        borderRadius: '50px',
-                                        marginBottom: '1rem',
-                                        boxShadow: '0 4px 15px rgba(252, 196, 25, 0.15)'
+                                        gap: '0.6rem',
+                                        flexWrap: 'wrap',
+                                        marginBottom: '1rem'
                                     }}>
-                                        <Flame size={15} color="#fcc419" />
-                                        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#fcc419', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                                            Thịnh Hành #{heroIndex + 1}
-                                        </span>
+                                        <SeasonalHeroBanner />
+                                        {/* Top Trending Badge */}
+                                        <div style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '0.4rem',
+                                            background: 'rgba(252, 196, 25, 0.12)',
+                                            border: '1px solid rgba(252, 196, 25, 0.35)',
+                                            backdropFilter: 'blur(10px)',
+                                            padding: '0.35rem 0.9rem',
+                                            borderRadius: '50px',
+                                            boxShadow: '0 4px 15px rgba(252, 196, 25, 0.15)'
+                                        }}>
+                                            <Flame size={15} color="#fcc419" />
+                                            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#fcc419', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                                                Thịnh Hành #{heroIndex + 1}
+                                            </span>
+                                        </div>
                                     </div>
 
                                     {/* Main Title */}

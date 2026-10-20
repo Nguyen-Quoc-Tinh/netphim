@@ -1,8 +1,10 @@
 import { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
-
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './theme/ThemeContext';
+import { ThemeEffects } from './theme/ThemeEffects';
+import ThemeModal from './components/ThemeModal';
 
 const Home = lazy(() => import('./pages/Home'));
 const MovieDetails = lazy(() => import('./pages/MovieDetails'));
@@ -40,6 +42,12 @@ function AppContent() {
   return (
     <Router>
       <div className="app">
+        {/* Global Seasonal Particle & Light Engine */}
+        <ThemeEffects />
+
+        {/* Global Seasonal Theme Modal */}
+        <ThemeModal />
+
         {user && <Navbar />}
         <main>
           <Suspense fallback={<PageLoader />}>
@@ -76,9 +84,11 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
