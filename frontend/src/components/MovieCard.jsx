@@ -1,36 +1,116 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Play, Star, Calendar } from 'lucide-react';
-import { motion } from 'framer-motion';
+import React, { useState, useRef, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Play, Star, Calendar, Heart, Info } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getMovieImageUrl } from '../utils/image';
+import { useAuth } from '../context/AuthContext';
+import { toggleFavorite } from '../utils/api';
 
 const MovieCard = ({ movie, source = 'ophim' }) => {
-    // Determine the source if not provided
     const effectiveSource = movie?.source || source;
-    
-    // Smart Image Fallback
+    const [isHovered, setIsHovered] = useState(false);
+    const [popupAlign, setPopupAlign] = useState('center');
+    const [isFavorite, setIsFavorite] = useState(false);
+    const hoverTimeout = useRef(null);
+    const containerRef = useRef(null);
+    const navigate = useNavigate();
+    const { user } = useAuth();
+
+    // Check if movie is already in user favorites
+    useEffect(() => {
+        if (user?.favorites && movie?.slug) {
+            const found = user.favorites.some(f => f.slug === movie.slug);
+            setIsFavorite(found);
+        }
+    }, [user, movie?.slug]);
+
     const getImageUrl = () => {
         return getMovieImageUrl(movie, 'thumb_url');
     };
 
+    const getBackdropUrl = () => {
+        return getMovieImageUrl(movie, 'poster_url');
+    };
+
+    const handleMouseEnter = () => {
+        if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+        hoverTimeout.current = setTimeout(() => {
+            if (containerRef.current) {
+                const rect = containerRef.current.getBoundingClientRect();
+                const windowWidth = window.innerWidth;
+                if (rect.left < 160) {
+                    setPopupAlign('left');
+                } else if (windowWidth - rect.right < 160) {
+                    setPopupAlign('right');
+                } else {
+                    setPopupAlign('center');
+                }
+            }
+            setIsHovered(true);
+        }, 260); // 260ms intentional delay like Netflix
+    };
+
+    const handleMouseLeave = () => {
+        if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+        setIsHovered(false);
+    };
+
+    const handlePlayClick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        navigate(`/movie/${movie?.slug}?source=${effectiveSource}`);
+    };
+
+    const handleDetailsClick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        navigate(`/movie/${movie?.slug}?source=${effectiveSource}`);
+    };
+
+    const handleToggleFavorite = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!user) {
+            navigate('/login');
+            return;
+        }
+        try {
+            const res = await toggleFavorite({
+                slug: movie?.slug,
+                name: movie?.name,
+                thumb_url: movie?.thumb_url,
+                source: effectiveSource
+            });
+            setIsFavorite(res.isFavorite);
+        } catch (err) {
+            console.error('Toggle favorite error:', err);
+        }
+    };
+
+    // Calculate rating score
+    const ratingScore = movie.imdb?.rating || 
+        (movie.tmdb?.vote_average ? Number(movie.tmdb.vote_average).toFixed(1) : (movie.rate || '7.5'));
+
     return (
-        <motion.div
-            whileHover={{ y: -8 }}
-            transition={{ type: "spring", stiffness: 350, damping: 25 }}
-            style={{ position: 'relative', borderRadius: '14px' }}
+        <div
+            ref={containerRef}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+            style={{ position: 'relative', borderRadius: '12px' }}
         >
+            {/* Base Card */}
             <Link to={`/movie/${movie?.slug}?source=${effectiveSource}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className="movie-card-container" style={{
                     position: 'relative',
                     aspectRatio: '2/3',
                     background: '#13111a',
-                    borderRadius: '14px',
+                    borderRadius: '12px',
                     overflow: 'hidden',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    boxShadow: '0 8px 20px rgba(0,0,0,0.4)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    boxShadow: '0 8px 18px rgba(0,0,0,0.4)',
                     cursor: 'pointer'
                 }}>
-                    {/* Poster Image with Zoom */}
+                    {/* Poster Image */}
                     <img 
                         src={getImageUrl()} 
                         alt={movie?.name || 'Movie'}
@@ -47,50 +127,26 @@ const MovieCard = ({ movie, source = 'ophim' }) => {
                         }}
                     />
 
-                    {/* Glossy Light Sheen Sweep Effect */}
-                    <div className="card-sheen" />
-
-                    {/* Trailer / Coming Soon Badge */}
-                    {(movie.episode_current?.toLowerCase().includes('trailer') || movie.status === 'trailer') && (
-                        <div style={{
-                            position: 'absolute',
-                            top: '10px',
-                            right: '10px',
-                            background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-                            color: '#fff',
-                            fontSize: '0.65rem',
-                            fontWeight: 900,
-                            padding: '4px 9px',
-                            borderRadius: '6px',
-                            zIndex: 3,
-                            textTransform: 'uppercase',
-                            boxShadow: '0 4px 12px rgba(59, 130, 246, 0.5)',
-                            letterSpacing: '0.5px'
-                        }}>
-                            Trailer
-                        </div>
-                    )}
-
                     {/* Top Right Badges */}
                     <div style={{
                         position: 'absolute',
-                        top: '10px',
-                        right: '10px',
+                        top: '8px',
+                        right: '8px',
                         display: 'flex',
                         flexDirection: 'column',
                         gap: '5px',
                         zIndex: 2
                     }}>
-                        {movie.episode_current && !movie.episode_current.toLowerCase().includes('trailer') && movie.episode_current !== 'Full' && (
+                        {movie.episode_current && (
                             <span style={{
-                                background: 'rgba(15, 12, 21, 0.75)',
+                                background: 'rgba(15, 12, 21, 0.78)',
                                 color: '#e2e8f0',
-                                padding: '3px 8px',
-                                borderRadius: '6px',
+                                padding: '3px 7px',
+                                borderRadius: '5px',
                                 fontSize: '0.65rem',
                                 fontWeight: 700,
                                 border: '1px solid rgba(255,255,255,0.18)',
-                                backdropFilter: 'blur(8px)',
+                                backdropFilter: 'blur(6px)',
                                 boxShadow: '0 4px 10px rgba(0,0,0,0.4)'
                             }}>
                                 {movie.episode_current}
@@ -98,39 +154,43 @@ const MovieCard = ({ movie, source = 'ophim' }) => {
                         )}
                     </div>
 
-                    {/* Floating Center Glassmorphic Play Button on Hover */}
-                    <div className="card-play-action">
-                        <div className="card-play-btn">
-                            <Play fill="white" color="white" size={22} style={{ marginLeft: '3px' }} />
-                        </div>
-                        <span className="card-play-text">Xem Ngay</span>
-                    </div>
-
-                    {/* Bottom Gradient & Title Metadata */}
+                    {/* Bottom Metadata Overlay */}
                     <div className="card-meta-gradient">
                         <h3 className="card-title">
                             {movie.name}
                         </h3>
+                        {movie.origin_name && (
+                            <p style={{
+                                fontSize: '0.72rem',
+                                opacity: 0.6,
+                                margin: '2px 0 0 0',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                            }}>
+                                {movie.origin_name}
+                            </p>
+                        )}
                         <div style={{ 
                             display: 'flex', 
                             alignItems: 'center', 
                             gap: '0.6rem', 
                             marginTop: '0.4rem',
-                            fontSize: '0.75rem',
+                            fontSize: '0.72rem',
                             opacity: 0.85
                         }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#cbd5e1' }}>
-                                <Calendar size={12} opacity={0.7} /> {movie.year || new Date().getFullYear()}
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#cbd5e1' }}>
+                                <Calendar size={11} opacity={0.7} /> {movie.year || new Date().getFullYear()}
                             </span>
                             {movie.quality && (
                                 <span style={{ 
-                                    background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.8), rgba(99, 102, 241, 0.8))', 
-                                    color: '#fff', 
-                                    padding: '2px 7px', 
-                                    borderRadius: '5px', 
+                                    background: 'rgba(139, 92, 246, 0.25)', 
+                                    color: '#c4b5fd', 
+                                    padding: '1px 6px', 
+                                    borderRadius: '4px', 
                                     fontWeight: '800',
-                                    fontSize: '0.65rem',
-                                    border: '1px solid rgba(255,255,255,0.2)'
+                                    fontSize: '0.62rem',
+                                    border: '1px solid rgba(139, 92, 246, 0.4)'
                                 }}>
                                     {movie.quality}
                                 </span>
@@ -140,90 +200,217 @@ const MovieCard = ({ movie, source = 'ophim' }) => {
                 </div>
             </Link>
 
+            {/* Netflix-style Expandable Popover on Hover */}
+            <AnimatePresence>
+                {isHovered && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.92, y: 8 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.92, transition: { duration: 0.15 } }}
+                        transition={{ type: "spring", stiffness: 400, damping: 28 }}
+                        className={`netflix-popup netflix-popup-${popupAlign}`}
+                        onClick={handlePlayClick}
+                    >
+                        {/* Top 16:9 Backdrop Image Banner */}
+                        <div style={{ position: 'relative', width: '100%', height: '170px', overflow: 'hidden', background: '#111' }}>
+                            <img 
+                                src={getBackdropUrl()}
+                                alt={movie?.name || 'Movie'}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                onError={(e) => {
+                                    e.target.src = getImageUrl();
+                                }}
+                            />
+                            {/* Smooth gradient blend into card body */}
+                            <div style={{
+                                position: 'absolute',
+                                inset: 0,
+                                background: 'linear-gradient(to top, #1e2029 0%, rgba(30, 32, 41, 0.4) 45%, transparent 100%)'
+                            }} />
+                            {/* Episode badge top-right */}
+                            {movie.episode_current && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '10px',
+                                    right: '10px',
+                                    background: 'rgba(0,0,0,0.75)',
+                                    color: '#fff',
+                                    fontSize: '0.65rem',
+                                    fontWeight: 700,
+                                    padding: '3px 8px',
+                                    borderRadius: '5px',
+                                    border: '1px solid rgba(255,255,255,0.2)',
+                                    backdropFilter: 'blur(6px)'
+                                }}>
+                                    {movie.episode_current}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Popover Details Content */}
+                        <div style={{ padding: '0.9rem 1.1rem 1.2rem 1.1rem', background: '#1e2029' }}>
+                            {/* Movie Titles */}
+                            <h4 style={{ 
+                                fontSize: '1.05rem', 
+                                fontWeight: 800, 
+                                color: '#fff', 
+                                margin: 0,
+                                lineHeight: '1.3',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                            }}>
+                                {movie.name}
+                            </h4>
+                            {movie.origin_name && (
+                                <p style={{ 
+                                    fontSize: '0.8rem', 
+                                    fontWeight: 600, 
+                                    color: '#f5c518', 
+                                    margin: '3px 0 12px 0',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis'
+                                }}>
+                                    {movie.origin_name}
+                                </p>
+                            )}
+
+                            {/* Action Buttons Row */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                                {/* Xem phim / trailer button */}
+                                <button 
+                                    onClick={handlePlayClick}
+                                    style={{
+                                        background: '#f5c518',
+                                        color: '#000',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        padding: '7px 14px',
+                                        fontSize: '0.82rem',
+                                        fontWeight: 800,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 4px 12px rgba(245, 197, 24, 0.35)',
+                                        transition: 'transform 0.15s ease'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.04)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                >
+                                    <Play size={14} fill="black" stroke="black" />
+                                    {movie.episode_current?.toLowerCase().includes('trailer') ? 'Xem trailer' : 'Xem ngay'}
+                                </button>
+
+                                {/* Favorite button */}
+                                <button 
+                                    onClick={handleToggleFavorite}
+                                    style={{
+                                        background: 'rgba(255,255,255,0.08)',
+                                        color: isFavorite ? '#ef4444' : '#fff',
+                                        border: '1px solid rgba(255,255,255,0.15)',
+                                        borderRadius: '8px',
+                                        padding: '7px 11px',
+                                        fontSize: '0.82rem',
+                                        fontWeight: 600,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        cursor: 'pointer',
+                                        transition: 'background 0.2s ease'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+                                >
+                                    <Heart size={14} fill={isFavorite ? '#ef4444' : 'none'} stroke={isFavorite ? '#ef4444' : 'white'} />
+                                    {isFavorite ? 'Đã thích' : 'Thích'}
+                                </button>
+
+                                {/* Info button */}
+                                <button 
+                                    onClick={handleDetailsClick}
+                                    style={{
+                                        background: 'rgba(255,255,255,0.08)',
+                                        color: '#fff',
+                                        border: '1px solid rgba(255,255,255,0.15)',
+                                        borderRadius: '8px',
+                                        padding: '7px 11px',
+                                        fontSize: '0.82rem',
+                                        fontWeight: 600,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        cursor: 'pointer',
+                                        transition: 'background 0.2s ease'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+                                >
+                                    <Info size={14} />
+                                    Chi tiết
+                                </button>
+                            </div>
+
+                            {/* Metadata Badges Row: IMDb, Rating, Year, Duration */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '6px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '3px', background: '#f5c518', padding: '1px 5px', borderRadius: '4px' }}>
+                                    <span style={{ color: '#000', fontWeight: 900, fontSize: '0.65rem' }}>IMDb</span>
+                                    <span style={{ color: '#000', fontWeight: 800, fontSize: '0.72rem' }}>
+                                        {ratingScore}
+                                    </span>
+                                </div>
+
+                                <span style={{ 
+                                    border: '1px solid rgba(255,255,255,0.28)', 
+                                    color: '#fff', 
+                                    padding: '1px 5px', 
+                                    borderRadius: '4px', 
+                                    fontSize: '0.68rem', 
+                                    fontWeight: 700 
+                                }}>
+                                    P
+                                </span>
+
+                                <span>{movie.year || new Date().getFullYear()}</span>
+
+                                <span>•</span>
+
+                                <span>{movie.time || (movie.episode_total ? `${movie.episode_total} tập` : 'Full HD')}</span>
+                            </div>
+
+                            {/* Genre line */}
+                            <div style={{ fontSize: '0.78rem', color: '#cbd5e1', fontWeight: 500 }}>
+                                {movie.category?.map(c => c.name).join(', ') || (movie.type === 'series' ? 'Phim Bộ' : 'Phim Lẻ')}
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             <style>{`
                 .movie-card-container {
-                    transition: border-color 0.35s ease, box-shadow 0.35s ease, transform 0.35s ease;
+                    transition: border-color 0.25s ease, box-shadow 0.25s ease;
                 }
                 .movie-card-container:hover {
-                    border-color: rgba(167, 139, 250, 0.55);
-                    box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.8), 0 0 24px rgba(139, 92, 246, 0.35);
-                }
-                .movie-poster-img {
-                    transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
-                }
-                .movie-card-container:hover .movie-poster-img {
-                    transform: scale(1.07);
-                }
-                .card-sheen {
-                    position: absolute;
-                    inset: 0;
-                    background: linear-gradient(120deg, transparent 20%, rgba(255, 255, 255, 0.15) 50%, transparent 80%);
-                    transform: translateX(-150%);
-                    transition: transform 0.7s ease;
-                    pointer-events: none;
-                    z-index: 3;
-                }
-                .movie-card-container:hover .card-sheen {
-                    transform: translateX(150%);
-                }
-                .card-play-action {
-                    position: absolute;
-                    inset: 0;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justifyContent: center;
-                    gap: 0.6rem;
-                    z-index: 4;
-                    pointer-events: none;
-                    opacity: 0;
-                    transform: scale(0.85);
-                    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-                }
-                .movie-card-container:hover .card-play-action {
-                    opacity: 1;
-                    transform: scale(1);
-                }
-                .card-play-btn {
-                    width: 52px;
-                    height: 52px;
-                    border-radius: 50%;
-                    background: linear-gradient(135deg, #a78bfa, #7c3aed);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    box-shadow: 0 8px 24px rgba(124, 58, 237, 0.65), 0 0 0 4px rgba(255, 255, 255, 0.18);
-                    transition: transform 0.2s ease;
-                }
-                .card-play-text {
-                    color: #fff;
-                    font-size: 0.75rem;
-                    font-weight: 800;
-                    letter-spacing: 0.5px;
-                    text-transform: uppercase;
-                    background: rgba(15, 12, 21, 0.75);
-                    padding: 3px 12px;
-                    border-radius: 20px;
-                    border: 1px solid rgba(255,255,255,0.2);
-                    backdrop-filter: blur(6px);
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+                    border-color: rgba(245, 197, 24, 0.4);
+                    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6);
                 }
                 .card-meta-gradient {
                     position: absolute;
                     bottom: 0;
                     left: 0;
                     right: 0;
-                    height: 50%;
+                    height: 52%;
                     background: linear-gradient(to top, rgba(10, 8, 16, 0.98) 0%, rgba(10, 8, 16, 0.7) 60%, transparent 100%);
                     display: flex;
                     flex-direction: column;
                     justifyContent: flex-end;
-                    padding: 1rem;
+                    padding: 0.9rem;
                     z-index: 2;
-                    transition: all 0.3s ease;
                 }
                 .card-title {
-                    font-size: 0.92rem;
+                    font-size: 0.88rem;
                     font-weight: 700;
                     margin: 0;
                     color: #fff;
@@ -232,14 +419,36 @@ const MovieCard = ({ movie, source = 'ophim' }) => {
                     -webkit-box-orient: vertical;
                     overflow: hidden;
                     line-height: 1.35;
-                    transition: color 0.3s ease, transform 0.3s ease;
                 }
-                .movie-card-container:hover .card-title {
-                    color: #c4b5fd;
-                    transform: translateY(-2px);
+                .netflix-popup {
+                    position: absolute;
+                    top: -24px;
+                    width: 320px;
+                    background: #1e2029;
+                    border-radius: 12px;
+                    overflow: hidden;
+                    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.1);
+                    z-index: 999;
+                    cursor: pointer;
+                }
+                .netflix-popup-center {
+                    left: 50%;
+                    transform: translateX(-50%);
+                }
+                .netflix-popup-left {
+                    left: -8px;
+                }
+                .netflix-popup-right {
+                    right: -8px;
+                    left: auto;
+                }
+                @media (max-width: 640px) {
+                    .netflix-popup {
+                        display: none !important;
+                    }
                 }
             `}</style>
-        </motion.div>
+        </div>
     );
 };
 
