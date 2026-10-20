@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { getHome, getLocalMovies, api } from '../utils/api';
+import { getHome, getLocalMovies, api, toggleFavorite } from '../utils/api';
 import { getMovieImageUrl } from '../utils/image';
 import MovieCard from '../components/MovieCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Info, Heart, ChevronUp, ChevronLeft, ChevronRight, Flame, Sparkles, Star, Calendar, Clock, Film } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { HeroSkeleton, MovieCardSkeleton } from '../components/Skeleton';
 import SeasonalHeroBanner from '../theme/SeasonalHeroBanner';
 
@@ -22,7 +23,10 @@ const Home = () => {
     const [heroIndex, setHeroIndex] = useState(0);
     const [isHeroPaused, setIsHeroPaused] = useState(false);
     const [progressKey, setProgressKey] = useState(0);
+    const [isHeroFavorite, setIsHeroFavorite] = useState(false);
+    const [isHeroFavoritePopping, setIsHeroFavoritePopping] = useState(false);
     const navigate = useNavigate();
+    const { user } = useAuth();
     const topTenRef = React.useRef(null);
 
     const scrollTopTen = (direction) => {
@@ -69,6 +73,42 @@ const Home = () => {
 
     const featuredMovies = data?.kkphim?.items?.slice(0, 8) || [];
     const currentHero = featuredMovies[heroIndex] || featuredMovies[0];
+
+    useEffect(() => {
+        setIsHeroFavorite(Boolean(
+            user?.favorites?.some((favorite) => favorite.slug === currentHero?.slug)
+        ));
+    }, [user, currentHero?.slug]);
+
+    const handleHeroFavorite = async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (!user) {
+            navigate('/login');
+            return;
+        }
+
+        const previousState = isHeroFavorite;
+        setIsHeroFavorite(!previousState);
+        setIsHeroFavoritePopping(true);
+        setTimeout(() => setIsHeroFavoritePopping(false), 450);
+
+        try {
+            const response = await toggleFavorite({
+                slug: currentHero?.slug,
+                name: currentHero?.name,
+                thumb_url: currentHero?.thumb_url,
+                source: 'kkphim'
+            });
+            if (typeof response?.isFavorite === 'boolean') {
+                setIsHeroFavorite(response.isFavorite);
+            }
+        } catch (error) {
+            setIsHeroFavorite(previousState);
+            console.error('Lỗi lưu phim yêu thích:', error);
+        }
+    };
 
     // Autoplay slider (every 7s)
     useEffect(() => {
@@ -453,20 +493,27 @@ const Home = () => {
                                         </button>
 
                                         <button 
-                                            title="Thêm vào danh sách yêu thích"
+                                            onClick={handleHeroFavorite}
+                                            title={isHeroFavorite ? 'Bỏ yêu thích' : 'Thêm vào danh sách yêu thích'}
                                             style={{
                                                 width: '48px',
                                                 height: '48px',
                                                 borderRadius: '50%',
-                                                background: 'rgba(255, 255, 255, 0.08)',
-                                                border: '1px solid rgba(255, 255, 255, 0.15)',
-                                                color: '#ffffff',
+                                                background: isHeroFavorite ? 'rgba(239, 68, 68, 0.25)' : 'rgba(255, 255, 255, 0.08)',
+                                                border: `1px solid ${isHeroFavorite ? 'rgba(239, 68, 68, 0.6)' : 'rgba(255, 255, 255, 0.15)'}`,
+                                                color: isHeroFavorite ? '#ef4444' : '#ffffff',
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
                                                 cursor: 'pointer',
                                                 backdropFilter: 'blur(10px)',
-                                                transition: 'all 0.3s ease'
+                                                transition: 'all 0.3s ease',
+                                                animation: isHeroFavoritePopping
+                                                    ? 'heartPulse 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                                                    : 'none',
+                                                boxShadow: isHeroFavoritePopping
+                                                    ? '0 0 16px rgba(239, 68, 68, 0.8)'
+                                                    : 'none'
                                             }}
                                             onMouseOver={(e) => {
                                                 e.currentTarget.style.background = 'rgba(244, 63, 94, 0.2)';
@@ -481,8 +528,21 @@ const Home = () => {
                                                 e.currentTarget.style.transform = 'scale(1)';
                                             }}
                                         >
-                                            <Heart size={20} />
+                                            <Heart
+                                                size={20}
+                                                fill={isHeroFavorite ? '#ef4444' : 'none'}
+                                                stroke={isHeroFavorite ? '#ef4444' : '#ffffff'}
+                                            />
                                         </button>
+                                        <style>{`
+                                            @keyframes heartPulse {
+                                                0% { transform: scale(1); }
+                                                25% { transform: scale(1.45) rotate(-10deg); }
+                                                50% { transform: scale(0.85) rotate(6deg); }
+                                                75% { transform: scale(1.2) rotate(-3deg); }
+                                                100% { transform: scale(1) rotate(0deg); }
+                                            }
+                                        `}</style>
                                     </div>
                                 </motion.div>
                             </AnimatePresence>
