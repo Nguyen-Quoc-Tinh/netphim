@@ -1,22 +1,21 @@
-import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, Check, Calendar, Palette } from 'lucide-react';
+import { X, Sparkles, Check, Palette } from 'lucide-react';
 import { useTheme } from '../theme/ThemeContext';
-import { THEME_LIST, THEMES } from '../theme/themes';
+import { THEME_LIST } from '../theme/themes';
 
 const ThemeModal = () => {
     const { 
         themeId, 
-        themeMode, 
         isAuto, 
         holidayInfo, 
         setAutoMode, 
         setManualTheme, 
         isThemeModalOpen, 
-        closeThemeModal 
+        closeThemeModal,
+        canManageTheme
     } = useTheme();
 
-    if (!isThemeModalOpen) return null;
+    if (!canManageTheme || !isThemeModalOpen) return null;
 
     return (
         <AnimatePresence>

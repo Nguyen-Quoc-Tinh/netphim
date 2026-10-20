@@ -22,7 +22,7 @@ const Navbar = () => {
     const timeoutRef = useRef(null);
     const debounceTimer = useRef(null);
     const { user, logout } = useAuth();
-    const { theme, openThemeModal } = useTheme();
+    const { theme, openThemeModal, canManageTheme } = useTheme();
     const [isChangePassOpen, setIsChangePassOpen] = useState(false);
     const navigate = useNavigate();
 
@@ -340,7 +340,7 @@ const Navbar = () => {
                 {/* Right Actions: Login/User & Theme */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
                     {/* Nút Giao diện lễ hội */}
-                    <button
+                    {canManageTheme && <button
                         onClick={openThemeModal}
                         title="Giao diện lễ hội"
                         className="theme-nav-btn"
@@ -362,7 +362,7 @@ const Navbar = () => {
                     >
                         <span style={{ fontSize: '1rem' }}>{theme?.icon || '🎨'}</span>
                         <span className="theme-btn-label" style={{ fontSize: '0.75rem', fontWeight: 700 }}>Lễ hội</span>
-                    </button>
+                    </button>}
 
                     {user ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }} className="user-actions">
@@ -474,7 +474,7 @@ const Navbar = () => {
                             <Link to="/category/phim-le" onClick={() => setIsMenuOpen(false)} style={mobileNavLinkStyle}>Phim Lẻ</Link>
                             <Link to="/category/phim-bo" onClick={() => setIsMenuOpen(false)} style={mobileNavLinkStyle}>Phim Bộ</Link>
                             <Link to="/list/phim-moi" onClick={() => setIsMenuOpen(false)} style={mobileNavLinkStyle}>Phim Mới</Link>
-                            <div 
+                            {canManageTheme && <div 
                                 style={{ ...mobileNavLinkStyle, cursor: 'pointer', color: 'var(--accent-color, #facc15)' }} 
                                 onClick={() => {
                                     setIsMenuOpen(false);
@@ -482,7 +482,7 @@ const Navbar = () => {
                                 }}
                             >
                                 <span>{theme?.icon || '🎨'}</span> Giao diện lễ hội
-                            </div>
+                            </div>}
                             <Link to="/profile" onClick={() => setIsMenuOpen(false)} style={mobileNavLinkStyle}>Hồ Sơ</Link>
                             {user?.isAdmin && <Link to="/admin" onClick={() => setIsMenuOpen(false)} style={mobileNavLinkStyle}>Admin</Link>}
                         </div>

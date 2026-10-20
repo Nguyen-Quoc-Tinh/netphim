@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { THEMES } from './themes';
 import { detectCurrentHoliday, getMillisecondsUntilNextVietnamMonth } from './holidayScheduler';
+import { useAuth } from '../context/AuthContext';
 
 const ThemeContext = createContext();
 
@@ -8,6 +9,9 @@ const THEME_MODE_KEY = 'netphim_theme_mode'; // 'auto' | 'manual'
 const MANUAL_THEME_KEY = 'netphim_manual_theme'; // theme id
 
 export const ThemeProvider = ({ children }) => {
+    const { user } = useAuth();
+    const isAdmin = Boolean(user?.isAdmin);
+
     // 1. Khởi tạo trạng thái từ localStorage (mặc định là 'auto' cho người dùng mới)
     const [themeMode, setThemeModeState] = useState(() => {
         try {
@@ -64,11 +68,11 @@ export const ThemeProvider = ({ children }) => {
 
     // 3. Tính toán Theme ID đang được áp dụng
     const activeThemeId = useMemo(() => {
-        if (themeMode === 'auto') {
+        if (!isAdmin || themeMode === 'auto') {
             return holidayInfo.themeId || 'default';
         }
         return THEMES[manualThemeId] ? manualThemeId : 'default';
-    }, [themeMode, holidayInfo.themeId, manualThemeId]);
+    }, [isAdmin, themeMode, holidayInfo.themeId, manualThemeId]);
 
     const activeTheme = useMemo(() => {
         return THEMES[activeThemeId] || THEMES.default;
@@ -108,7 +112,7 @@ export const ThemeProvider = ({ children }) => {
     }, []);
 
     const setManualTheme = useCallback((themeId) => {
-        if (!THEMES[themeId]) return;
+        if (!isAdmin || !THEMES[themeId]) return;
         setThemeModeState('manual');
         setManualThemeIdState(themeId);
         try {
@@ -117,16 +121,21 @@ export const ThemeProvider = ({ children }) => {
         } catch (e) {
             console.warn('Cannot write localStorage:', e);
         }
-    }, []);
+    }, [isAdmin]);
 
-    const openThemeModal = useCallback(() => setIsThemeModalOpen(true), []);
+    const openThemeModal = useCallback(() => {
+        if (isAdmin) {
+            setIsThemeModalOpen(true);
+        }
+    }, [isAdmin]);
     const closeThemeModal = useCallback(() => setIsThemeModalOpen(false), []);
 
     const value = {
         theme: activeTheme,
         themeId: activeThemeId,
         themeMode,
-        isAuto: themeMode === 'auto',
+        isAuto: !isAdmin || themeMode === 'auto',
+        canManageTheme: isAdmin,
         manualThemeId,
         holidayInfo,
         setAutoMode,
