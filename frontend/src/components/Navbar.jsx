@@ -124,13 +124,13 @@ const Navbar = () => {
             background: scrolled ? 'rgba(15, 12, 21, 0.95)' : 'linear-gradient(to bottom, rgba(15, 12, 21, 0.8), transparent)',
             backdropFilter: scrolled ? 'blur(10px)' : 'none'
         }}>
-            <div className="container" style={{
+            <div className="container nav-container" style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '2rem'
+                gap: '1.2rem'
             }}>
                 {/* Logo */}
-                <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginRight: '1rem' }}>
+                <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
                     <div style={{
                         background: 'var(--primary-color)',
                         padding: '0.4rem',
@@ -150,7 +150,7 @@ const Navbar = () => {
                 </Link>
 
                 {/* Search Bar */}
-                <div ref={searchRef} style={{ position: 'relative', flex: 1, maxWidth: '450px' }}>
+                <div ref={searchRef} className="nav-search-bar" style={{ position: 'relative', flex: '1 1 180px', maxWidth: '380px', minWidth: '130px' }}>
                     <form onSubmit={handleSearch}>
                         <input 
                             type="text" 
@@ -285,10 +285,11 @@ const Navbar = () => {
                 <div style={{ 
                     display: 'flex', 
                     alignItems: 'center', 
-                    gap: '1.5rem', 
+                    gap: '1.2rem', 
                     fontSize: '0.9rem', 
                     fontWeight: 500,
-                    marginLeft: 'auto'
+                    marginLeft: 'auto',
+                    whiteSpace: 'nowrap'
                 }} className="desktop-nav">
                     <Link to="/" className="nav-link">Trang Chủ</Link>
                     
@@ -301,7 +302,7 @@ const Navbar = () => {
                             Thể loại <ChevronDown size={14} />
                         </span>
                         {activeDropdown === 'category' && (
-                            <div className="dropdown-grid">
+                            <div className="dropdown-grid dropdown-grid-center">
                                 {categories.map((cat) => (
                                     <Link key={cat._id} to={`/category/${cat.slug}`} onClick={() => setActiveDropdown(null)}>
                                         {cat.name}
@@ -320,7 +321,7 @@ const Navbar = () => {
                             Quốc Gia <ChevronDown size={14} />
                         </span>
                         {activeDropdown === 'country' && (
-                            <div className="dropdown-grid">
+                            <div className="dropdown-grid dropdown-grid-right">
                                 {countries.map((count) => (
                                     <Link key={count._id} to={`/country/${count.slug}`} onClick={() => setActiveDropdown(null)}>
                                         {count.name}
@@ -335,7 +336,7 @@ const Navbar = () => {
                 </div>
 
                 {/* Right Actions: Login/User */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexShrink: 0 }}>
                     {user ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }} className="user-actions">
                             {user.isAdmin && (
@@ -474,63 +475,86 @@ const Navbar = () => {
                     cursor: pointer; 
                     height: 100%; 
                     display: flex; 
-                    alignItems: center;
-                    padding: 0.5rem 0.8rem;
-                    border-radius: 4px;
+                    align-items: center;
+                    padding: 0.5rem 0.6rem;
+                    border-radius: 6px;
                     transition: 0.2s;
                     border: 1px solid transparent;
+                    white-space: nowrap;
                 }
                 .nav-dropdown.active {
-                    border-color: rgba(255,255,255,0.8);
+                    border-color: rgba(255,255,255,0.4);
+                    background: rgba(255,255,255,0.05);
                 }
                 .dropdown-grid {
                     position: absolute;
                     top: calc(100% + 0.5rem);
-                    left: 0;
-                    width: 700px;
+                    width: min(580px, 90vw);
                     display: grid;
                     grid-template-columns: repeat(4, 1fr);
-                    gap: 1rem 2rem;
-                    padding: 2.5rem;
-                    border-radius: 12px;
+                    gap: 0.75rem 1.2rem;
+                    padding: 1.6rem 2rem;
+                    border-radius: 14px;
                     background: #14141b;
-                    box-shadow: 0 30px 60px rgba(0,0,0,0.8);
+                    border: 1px solid rgba(255,255,255,0.1);
+                    box-shadow: 0 25px 50px rgba(0,0,0,0.85);
                     z-index: 1001;
                 }
+                .dropdown-grid-center {
+                    left: 50%;
+                    transform: translateX(-35%);
+                }
+                .dropdown-grid-right {
+                    right: 0;
+                    left: auto;
+                }
                 .dropdown-grid a { 
-                    font-size: 0.95rem; 
-                    color: #fff;
-                    opacity: 0.8; 
+                    font-size: 0.88rem; 
+                    color: #e2e8f0;
+                    opacity: 0.85; 
                     transition: 0.2s;
                     white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
                 }
                 .dropdown-grid a:hover { 
                     opacity: 1; 
                     color: var(--primary-color); 
-                    transform: translateX(5px);
+                    transform: translateX(4px);
                 }
                 
-                @media (max-width: 1200px) {
-                    .dropdown-grid { width: 500px; grid-template-columns: repeat(3, 1fr); }
+                @media (max-width: 1366px) {
+                    .nav-container { gap: 1rem !important; }
+                    .desktop-nav { gap: 0.8rem !important; font-size: 0.85rem !important; }
+                    .nav-dropdown { padding: 0.4rem 0.4rem; }
+                    .nav-search-bar { max-width: 280px !important; }
+                    .dropdown-grid { width: min(480px, 85vw); grid-template-columns: repeat(3, 1fr); padding: 1.2rem 1.5rem; }
                 }
-                @media (max-width: 1100px) {
-                    .desktop-nav { gap: 0.5rem !important; }
-                    .nav-dropdown { padding: 0.5rem 0.4rem; }
+
+                @media (max-width: 1150px) {
+                    .desktop-nav { gap: 0.5rem !important; font-size: 0.82rem !important; }
+                    .nav-dropdown { padding: 0.4rem 0.3rem; }
+                    .nav-search-bar { max-width: 200px !important; }
+                    .dropdown-grid { width: min(420px, 85vw); grid-template-columns: repeat(3, 1fr); padding: 1rem 1.2rem; gap: 0.6rem 0.8rem; }
+                    .dropdown-grid a { font-size: 0.82rem; }
+                    .logo-subtext { display: none !important; }
                 }
-                @media (max-width: 900px) {
+
+                @media (max-width: 1024px) {
                     .desktop-nav { display: none !important; }
                     .mobile-toggle { display: block !important; }
+                    .nav-search-bar { max-width: 260px !important; }
                     .logo-text span:first-child { font-size: 1.3rem !important; }
-                    .logo-subtext { display: none !important; }
                     .username-text { display: none !important; }
                     .user-pill { padding: 0.3rem 0.5rem !important; }
                     .admin-link { display: none !important; }
-                    .container { gap: 0.8rem !important; }
+                    .nav-container { gap: 0.8rem !important; }
                 }
-                @media (max-width: 400px) {
-                    .logo-text span:first-child { font-size: 1rem !important; }
-                    .logo-subtext { display: none !important; }
-                    .container { justify-content: space-between !important; }
+
+                @media (max-width: 600px) {
+                    .nav-search-bar { display: none !important; }
+                    .logo-text span:first-child { font-size: 1.15rem !important; }
+                    .nav-container { justify-content: space-between !important; }
                 }
             `}</style>
         </nav>
