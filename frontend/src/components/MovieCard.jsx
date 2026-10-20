@@ -292,7 +292,7 @@ const MovieCard = ({ movie, source = 'ophim' }) => {
                 .card-watch-btn {
                     flex: 1;
                     height: 36px;
-                    background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+                    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
                     border: 1px solid rgba(255, 255, 255, 0.2);
                     border-radius: 8px;
                     color: #fff;
@@ -303,13 +303,13 @@ const MovieCard = ({ movie, source = 'ophim' }) => {
                     justify-content: center;
                     gap: 6px;
                     cursor: pointer;
-                    box-shadow: 0 4px 12px rgba(109, 40, 217, 0.4);
+                    box-shadow: 0 4px 12px var(--theme-glow, rgba(0, 0, 0, 0.4));
                     transition: all 0.2s ease;
                 }
                 .card-watch-btn:hover {
-                    background: linear-gradient(135deg, #9333ea, #7c3aed);
+                    background: linear-gradient(135deg, var(--accent-color), var(--primary-color));
                     transform: translateY(-1px);
-                    box-shadow: 0 6px 16px rgba(124, 58, 237, 0.6);
+                    box-shadow: 0 6px 16px var(--theme-glow, rgba(0, 0, 0, 0.6));
                 }
 
                 /* Nút Yêu Thích hình vuông */

@@ -86,6 +86,7 @@ export const ThemeProvider = ({ children }) => {
         root.style.setProperty('--bg-color', colors.background);
         root.style.setProperty('--surface-color', colors.surface);
         root.style.setProperty('--primary-color', colors.primary);
+        root.style.setProperty('--secondary-color', colors.secondary);
         root.style.setProperty('--accent-color', colors.accent);
         root.style.setProperty('--text-primary', colors.text);
         root.style.setProperty('--text-secondary', colors.textSecondary);
